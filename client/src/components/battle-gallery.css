@@ -65,3 +65,10 @@
   .battle-gallery-roles button .piece-art { width: 39px; height: 43px; }
   .battle-gallery-actors small { font-size: 8px; }
 }
+.battle-gallery-modes { display: flex; padding: 4px; border: 1px solid #ffffff12; background: #ffffff04; border-radius: 8px; gap: 4px; margin-bottom: 22px; }
+.battle-gallery-modes button { flex: 1; min-height: 38px; border: 0; border-radius: 5px; background: transparent; color: #96a39e; font-size: 12px; font-weight: 650; }
+.battle-gallery-modes button.is-active { background: #7e9f4429; color: #d5e5b6; box-shadow: inset 0 0 0 1px #adc17d38; }
+.battle-gallery-armies, .battle-gallery-reactions { display: flex; flex-wrap: wrap; gap: 6px; }
+.battle-gallery-armies button, .battle-gallery-reactions button { border: 1px solid #ffffff16; border-radius: 6px; color: #a2afa9; background: #ffffff03; padding: 8px 10px; font-size: 10px; min-height: 32px; }
+.battle-gallery-armies button.is-active, .battle-gallery-reactions button.is-active { color: #d4e6b9; background: #a2ba6e12; border-color: #a2ba6e77; }
+.battle-gallery-finishers button { min-height: 47px; text-transform: none; }

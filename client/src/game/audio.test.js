@@ -46,6 +46,19 @@ test('skipping sound cancels every scheduled source and shorter motion uses earl
     assert.ok(created.every(value => value.stops[0] <= 10.08), 'Off-motion cues should end naturally without a delayed tail');
     cancelOff();
     created.length = 0;
+    const finisher = { ...event, presentationVersion: 2, reactionVariant: 'pawn-shield-break', duration: 2700, finisher: { id: 'pawn-giants-fall', baseDuration: 1000 } };
+    const cancelFinisher = playMoveSound(finisher, .4, 'full');
+    const impact = created.find(value => value.kind === 'oscillator').starts[0];
+    assert.ok(impact > 11 && impact < 11.2, 'Finisher contact follows the shared long timeline');
+    assert.ok(created.some(value => value.starts[0] > 11.8), 'The closing environmental sound belongs to the long finish');
+    cancelFinisher();
+    assert.ok(created.every(value => value.disconnected && value.stops.at(-1) === undefined));
+    created.length = 0;
+    const cancelOrdinary = playMoveSound(finisher, .4, 'full', { finishers: false });
+    assert.ok(created.find(value => value.kind === 'oscillator').starts[0] < 10.6, 'Disabling finishers restores the original sound timing');
+    assert.ok(created.every(value => value.starts[0] < 11), 'Disabled finishers must not leave delayed environmental sound');
+    cancelOrdinary();
+    created.length = 0;
     assert.equal(playMoveSound(event, 0), undefined);
     assert.equal(created.length, 0);
   } finally {

@@ -1,0 +1,86 @@
+.finisher-effects { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; overflow: hidden; pointer-events: none; color: var(--battle-accent); fill: none; stroke: currentColor; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.finisher-ground-shadow { stroke: none; animation: finisher-ground var(--finisher-duration) both; }
+.finisher-environment { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--battle-accent) 50%, transparent)); }
+.finisher-tile { fill: #a4a68b; stroke: #282f2b; stroke-width: 2; animation: finisher-tile var(--finisher-release) var(--finisher-impact-at) both; }
+.finisher-fragment { fill: #d8cdb2; stroke: #514b40; stroke-width: 1; animation: finisher-fragment calc(var(--finisher-release) * .9) both; }
+.finisher-snare { stroke-width: 5; stroke-dasharray: 1; animation: finisher-snare var(--finisher-duration) both; }
+.finisher-dust-ring { stroke: #d9ccb5; stroke-width: 12; opacity: .4; animation: finisher-dust var(--finisher-release) var(--finisher-impact-at) both; }
+.finisher-spear { fill: #fff1b8; stroke: #f2d58e; stroke-width: 5; animation: finisher-spears var(--finisher-duration) calc(var(--effect-order) * 28ms) both; }
+.finisher-spear-scar { stroke-width: 7; animation: finisher-scar var(--finisher-duration) both; }
+.finisher-hoof { stroke: #fff6d2; stroke-width: 4; animation: finisher-hoof var(--finisher-duration) calc(var(--effect-order) * 45ms) both; }
+.finisher-thunder-ring { stroke-width: 7; stroke-dasharray: 40 5 13 6; animation: finisher-thunder var(--finisher-release) calc(var(--finisher-impact-at) + var(--effect-order) * 60ms) both; }
+.finisher-sky-arc { stroke-width: 8; stroke-dasharray: 1; animation: finisher-sky-arc var(--finisher-duration) both; }
+.finisher-sky-lance { stroke: #fff9d6; stroke-width: 10; animation: finisher-sky-lance var(--finisher-duration) both; }
+.finisher-sky-wake { stroke: var(--battle-accent); stroke-width: 5; }
+.finisher-crater { fill: #121c23; stroke: #a8b5ac; stroke-width: 7; animation: finisher-crater var(--finisher-duration) both; }
+.finisher-gate { fill: #111329aa; stroke-width: 5; animation: finisher-gate var(--finisher-duration) both; }
+.finisher-gate ellipse:nth-child(2) { fill: #080b18bb; stroke: #dce7ff; stroke-width: 1; }
+.finisher-gate-tether { stroke: #d6d7ff; stroke-width: 4; animation: finisher-gate-tether var(--finisher-duration) calc(var(--effect-order) * 35ms) both; }
+.finisher-fault { fill: #080a18; stroke-width: 5; animation: finisher-fault var(--finisher-duration) both; }
+.finisher-rune-pillar { fill: color-mix(in srgb, var(--battle-accent) 16%, #171b2d); stroke-width: 3; animation: finisher-rune-pillar var(--finisher-duration) calc(var(--effect-order) * 35ms) both; }
+.finisher-earth-crack { stroke: #10191a; stroke-width: 4; stroke-dasharray: 1; animation: finisher-crack var(--finisher-duration) both; }
+.finisher-quake { stroke-width: 9; animation: finisher-quake var(--finisher-release) calc(var(--finisher-impact-at) + var(--effect-order) * 70ms) both; }
+.finisher-hammerprint { fill: #16201bbb; stroke: #dce1c8; stroke-width: 4; animation: finisher-scar var(--finisher-duration) both; }
+.finisher-citadel { fill: #697968; stroke: #d2d6bd; stroke-width: 4; animation: finisher-citadel var(--finisher-duration) both; }
+.finisher-citadel-mortar { fill: none; stroke: #26352e; stroke-width: 4; }
+.finisher-pressure { stroke: #fff8d4; stroke-width: 9; animation: finisher-pressure var(--finisher-duration) both; }
+.finisher-gravity-orbit { stroke-width: 4; animation: finisher-gravity-orbit var(--finisher-duration) calc(var(--effect-order) * 20ms) both; }
+.finisher-gravity-orbit path { fill: #e5deff; }
+.finisher-gravity-crown { fill: #2e234c44; stroke: #f3dfaf; stroke-width: 4; animation: finisher-gravity-crown var(--finisher-duration) both; }
+.finisher-singularity { fill: #050915; stroke-width: 6; animation: finisher-singularity var(--finisher-duration) both; }
+.finisher-meteor { fill: #fff2ca; stroke-width: 4; animation: finisher-meteor var(--finisher-duration) calc(var(--effect-order) * 55ms) both; }
+.finisher-star-crater { fill: #19233199; stroke-width: 5; animation: finisher-star-crater var(--finisher-duration) calc(var(--effect-order) * 55ms) both; }
+.finisher-judgment-seal { stroke-width: 3; animation: finisher-judgment-seal var(--finisher-duration) both; }
+.finisher-verdict-cut { stroke: #fff8da; stroke-width: 11; animation: finisher-verdict-cut var(--finisher-duration) both; }
+.finisher-wrath-crown { fill: #e1bf6922; stroke: #ffedb8; stroke-width: 5; animation: finisher-wrath-crown var(--finisher-duration) both; }
+.finisher-wrath-blade { fill: #eee2b866; stroke: #fff1c9; animation: finisher-wrath-blade var(--finisher-duration) calc(var(--effect-order) * 15ms) both; }
+.finisher-royal-wave { stroke-width: 10; animation: finisher-royal-wave var(--finisher-release) var(--finisher-impact-at) both; }
+.finisher-allied-echo { stroke: var(--finisher-echo-accent); stroke-width: 6; animation: finisher-echo var(--finisher-duration) both; }
+.finisher-allied-echo path:nth-child(2) { stroke: var(--battle-accent); }
+.finisher-allied-echo circle { stroke: #fff0ce; stroke-width: 2; stroke-dasharray: 12 16; }
+
+@keyframes finisher-ground { 0%, 13%, 100% { opacity: 0; } 27%, 70% { opacity: .85; } }
+@keyframes finisher-tile { 0% { opacity: 0; transform: translate(0,0); } 10% { opacity: 1; } 35% { opacity: 1; transform: translate(var(--tile-x),var(--tile-y)) rotate(var(--tile-spin)); } 76% { opacity: .6; transform: translate(var(--tile-x),calc(var(--tile-y) + 30px)) rotate(var(--tile-spin)) scale(.85); } 100% { opacity: 0; transform: translate(0,0) scale(.4); } }
+@keyframes finisher-fragment { 0% { opacity: 0; transform: scale(.1); } 12% { opacity: 1; } 45% { transform: translate(var(--fragment-x),var(--fragment-y)) rotate(var(--fragment-spin)); opacity: .95; } 100% { transform: translate(var(--fragment-x),calc(var(--fragment-y) + 70px)) rotate(var(--fragment-spin)) scale(.25); opacity: 0; } }
+@keyframes finisher-snare { 0%, 12% { opacity: 0; stroke-dashoffset: 1; } 30%, 43% { opacity: 1; stroke-dashoffset: 0; } 66%, 100% { opacity: 0; stroke-dashoffset: -.5; } }
+@keyframes finisher-dust { 0% { opacity: 0; transform: scale(.2); } 28% { opacity: .65; } 100% { opacity: 0; transform: scale(1.8); } }
+@keyframes finisher-spears { 0%, 20% { opacity: 0; translate: -30px 120px; } 39% { opacity: 1; translate: 0 -16px; } 45%, 66% { opacity: 1; translate: 0 0; } 85%, 100% { opacity: 0; translate: 0 35px; } }
+@keyframes finisher-scar { 0%, 39% { opacity: 0; } 44%, 65% { opacity: 1; } 96%, 100% { opacity: 0; } }
+@keyframes finisher-hoof { 0%, 13% { opacity: 0; transform: scale(.2); } 26% { opacity: .9; transform: scale(1); } 47%, 100% { opacity: 0; transform: scale(1.4); } }
+@keyframes finisher-thunder { 0% { opacity: 0; transform: scale(.3); } 15% { opacity: 1; } 70% { opacity: .4; } 100% { opacity: 0; transform: scale(1.4); } }
+@keyframes finisher-sky-arc { 0%, 12% { opacity: 0; stroke-dashoffset: 1; } 30% { opacity: .8; stroke-dashoffset: .3; } 41% { opacity: 1; stroke-dashoffset: 0; } 58%, 100% { opacity: 0; } }
+@keyframes finisher-sky-lance { 0%, 27% { opacity: 0; transform: translateY(-210px) scale(.65); } 39% { opacity: 1; transform: translateY(-18px) scale(1); } 43%, 53% { opacity: 1; transform: translateY(0) scale(1); } 68%, 100% { opacity: 0; transform: translateY(20px) scale(.8); } }
+@keyframes finisher-crater { 0%, 40% { opacity: 0; transform: scale(.1); } 51%, 70% { opacity: .85; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2); } }
+@keyframes finisher-gate { 0%, 12% { opacity: 0; transform: scale(.1,.2); } 31%, 48% { opacity: 1; transform: scale(1); } 68% { opacity: .9; transform: translateX(calc(var(--gate-side) * -55px)) scale(.65,1.1); } 83%, 100% { opacity: 0; transform: translateX(calc(var(--gate-side) * -74px)) scale(0,1.3); } }
+@keyframes finisher-gate-tether { 0%, 31% { opacity: 0; stroke-dasharray: 2 20; } 42%, 58% { opacity: 1; stroke-dasharray: 20 4; } 79%, 100% { opacity: 0; stroke-dasharray: 2 30; } }
+@keyframes finisher-fault { 0%, 29% { opacity: 0; transform: scale(.2); } 43%, 58% { opacity: .95; transform: scale(1); } 75% { opacity: .8; transform: scale(1.08,.8); } 99%, 100% { opacity: 0; transform: scale(1,.01); } }
+@keyframes finisher-rune-pillar { 0%, 23% { opacity: 0; transform: scaleY(0); } 39%, 55% { opacity: 1; transform: scaleY(1); } 72% { opacity: .6; transform: translateY(10px) scaleY(.7); } 87%, 100% { opacity: 0; transform: translateY(25px) scaleY(0); } }
+@keyframes finisher-crack { 0%, 38% { opacity: 0; stroke-dashoffset: 1; } 54%, 71% { opacity: .95; stroke-dashoffset: 0; } 98%, 100% { opacity: 0; stroke-dashoffset: 0; } }
+@keyframes finisher-quake { 0% { opacity: 0; transform: scale(.1); } 22% { opacity: .7; } 100% { opacity: 0; transform: scale(1.35); } }
+@keyframes finisher-citadel { 0%, 16% { opacity: 0; transform: translate(calc(var(--citadel-side) * 120px),50px) scaleY(.2); } 30% { opacity: .95; transform: translate(calc(var(--citadel-side) * 95px),0) scaleY(1); } 42%, 49% { opacity: 1; transform: translate(calc(var(--citadel-side) * -22px),0); } 69% { opacity: .8; transform: translate(calc(var(--citadel-side) * 42px),20px) rotate(calc(var(--citadel-side) * 19deg)); } 87%, 100% { opacity: 0; transform: translate(calc(var(--citadel-side) * 75px),85px) rotate(calc(var(--citadel-side) * 31deg)) scaleY(.2); } }
+@keyframes finisher-pressure { 0%, 39% { opacity: 0; stroke-width: 0; } 43% { opacity: 1; stroke-width: 18; } 55%, 100% { opacity: 0; stroke-width: 1; } }
+@keyframes finisher-gravity-orbit { 0%, 10% { opacity: 0; transform: scale(1.5) rotate(-45deg); } 27%, 37% { opacity: .9; transform: scale(1) rotate(0); } 61% { opacity: 1; transform: scale(.22) rotate(135deg); } 80%, 100% { opacity: 0; transform: scale(.02) rotate(180deg); } }
+@keyframes finisher-gravity-crown { 0%, 22% { opacity: 0; transform: translateY(-65px) scale(1.2); } 39%, 47% { opacity: .9; transform: scale(1); } 64% { opacity: 1; transform: scale(.2); } 79%, 100% { opacity: 0; transform: scale(.05); } }
+@keyframes finisher-singularity { 0%, 36% { opacity: 0; transform: scale(.1); } 50% { opacity: .85; transform: scale(1.6); } 68% { opacity: 1; transform: scale(.35); } 80%, 100% { opacity: 0; transform: scale(0); } }
+@keyframes finisher-meteor { 0%, 25% { opacity: 0; transform: translate(-100px,-250px) scale(.5); } 38% { opacity: 1; transform: translate(-15px,-30px) scale(.9); } 42% { opacity: 1; transform: translate(0,0); } 55% { opacity: .7; transform: scale(1.4,.15); } 68%, 100% { opacity: 0; transform: scale(1.8,0); } }
+@keyframes finisher-star-crater { 0%, 40% { opacity: 0; transform: scale(.4); } 49%, 65% { opacity: .9; transform: scale(1); } 90%, 100% { opacity: 0; transform: scale(.7); } }
+@keyframes finisher-judgment-seal { 0%, 9% { opacity: 0; transform: scale(.1) rotate(-45deg); } 30%, 43% { opacity: .9; transform: scale(1) rotate(0); } 62% { opacity: .7; transform: scale(1.6) rotate(25deg); } 85%, 100% { opacity: 0; transform: scale(1.7) rotate(30deg); } }
+@keyframes finisher-verdict-cut { 0%, 39% { opacity: 0; stroke-width: 0; } 42% { opacity: 1; stroke-width: 15; } 55%, 100% { opacity: 0; stroke-width: 1; } }
+@keyframes finisher-wrath-crown { 0%, 14% { opacity: 0; transform: scale(.4); } 30% { opacity: .85; transform: scale(.85); } 43% { opacity: 1; transform: scale(1.2); } 68% { opacity: .5; transform: scale(1.7); } 86%, 100% { opacity: 0; transform: scale(2); } }
+@keyframes finisher-wrath-blade { 0%, 19% { opacity: 0; scale: .3; } 36%, 44% { opacity: 1; scale: 1; } 65% { opacity: .9; scale: 1.8; } 83%, 100% { opacity: 0; scale: 2.2; } }
+@keyframes finisher-royal-wave { 0% { opacity: 0; transform: scale(.5); } 17% { opacity: 1; } 100% { opacity: 0; transform: scale(3); } }
+@keyframes finisher-echo { 0%, 31% { opacity: 0; stroke-dasharray: 1; stroke-dashoffset: 1; } 45%, 57% { opacity: .8; stroke-dashoffset: 0; } 78%, 100% { opacity: 0; stroke-dashoffset: -.3; } }
+
+@media (max-width: 600px) {
+  .finisher-fragment:nth-child(n + 19), .finisher-tile:nth-child(even) { display: none; }
+  .finisher-environment { filter: none; }
+}
+.finisher-trip-line { stroke: #fff1c7; stroke-width: 6; stroke-dasharray: 1; animation: finisher-snare var(--finisher-duration) both; }
+.finisher-planted-spear { stroke: #fff1c7; stroke-width: 5; animation: finisher-planted-spear var(--finisher-duration) both; }
+.finisher-spear .finisher-stone-spire { fill: #798874; stroke: #d2d8b8; stroke-width: 3; }
+.finisher-judgment-shield { fill: #d9d9ba44; stroke: #fff1c5; stroke-width: 5; animation: finisher-judgment-shield var(--finisher-duration) both; }
+.finisher-judgment-shield path + path { fill: none; stroke-width: 4; }
+@keyframes finisher-planted-spear { 0% { opacity: 0; translate: 0 -30px; } 17%, 54% { opacity: 1; translate: 0 0; } 83%, 100% { opacity: 0; translate: 0 0; } }
+@keyframes finisher-judgment-shield { 0%, 15% { opacity: 0; transform: translateX(calc(var(--shield-side) * 140px)) scale(.7); } 29% { opacity: .9; transform: translateX(calc(var(--shield-side) * 62px)); } 41%, 48% { opacity: 1; transform: translateX(calc(var(--shield-side) * -20px)); } 64% { opacity: .8; transform: translateX(calc(var(--shield-side) * -10px)) rotate(calc(var(--shield-side) * 8deg)); } 84%, 100% { opacity: 0; transform: translateX(calc(var(--shield-side) * 56px)) rotate(calc(var(--shield-side) * 32deg)) scale(.55); } }
+
+.finisher-earth-branch { stroke-width: 1.8; opacity: .85; }

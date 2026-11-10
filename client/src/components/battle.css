@@ -365,3 +365,65 @@
   .battle-caption-kicker { font-size: 7px; }
   .battle-caption strong { font-size: 16px; }
 }
+
+/* Version two reactions start at the shared contact time; older replays retain their original paths. */
+.battle-version-two .battle-victim > .piece-art > .piece-art__figure { animation: battle-defense var(--battle-impact-delay) both; }
+.battle-version-two .battle-victim .piece-art__shield { animation: battle-defense-shield var(--battle-impact-delay) both; }
+.battle-version-two .battle-victim .piece-art__base { animation: battle-base-break var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-version-two .battle-victim .piece-art__rider,
+.battle-version-two .battle-victim .piece-art__mount,
+.battle-version-two .battle-victim .piece-art__crown { animation: none; }
+.battle-version-two[data-reaction="pawn-shield-break"] .battle-victim .piece-art__shield { animation: battle-defense-shield var(--battle-impact-delay) both, reaction-shield-break var(--battle-reaction-duration) var(--battle-impact-delay) forwards; }
+.battle-version-two[data-reaction="knight-unseat"] .battle-victim .piece-art__rider { animation: reaction-rider-launch var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-version-two[data-reaction="knight-unseat"] .battle-victim .piece-art__mount { animation: reaction-mount-fall var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-version-two[data-reaction="knight-collapse"] .battle-victim .piece-art__rider { animation: reaction-rider-fold var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-version-two[data-reaction="knight-scatter"] .battle-victim .piece-art__rider { animation: reaction-rider-scatter var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-version-two[data-reaction="knight-scatter"] .battle-victim .piece-art__mount { animation: reaction-mount-scatter var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-version-two[data-reaction="queen-crownfall"] .battle-victim .piece-art__crown { animation: reaction-crown-flight var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-version-two[data-reaction="queen-collapse"] .battle-victim .piece-art__cape { animation: reaction-cape-fall var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-victim-fragments { z-index: 4; filter: none; }
+.battle-victim-fragment { position: absolute; inset: 0; transform-origin: 50% 70%; opacity: 0; animation: reaction-body-fragment var(--battle-reaction-duration) var(--battle-impact-delay) both; }
+.battle-victim-fragment .piece-art { width: 100%; height: 100%; }
+.battle-victim-fragment-0 { clip-path: polygon(0 0, 57% 0, 43% 52%, 52% 100%, 0 100%); }
+.battle-victim-fragment-1 { clip-path: polygon(57% 0, 100% 0, 71% 66%, 43% 52%); }
+.battle-victim-fragment-2 { clip-path: polygon(100% 0, 100% 100%, 52% 100%, 43% 52%, 71% 66%); }
+.battle-version-two[data-reaction="bishop-shatter"] .battle-victim-fragment { animation-name: reaction-glass-fragment; filter: drop-shadow(0 0 4px var(--battle-accent)); }
+.battle-version-two[data-reaction="queen-disperse"] .battle-victim-fragment { animation-name: reaction-royal-fragment; }
+.battle-ally-echo { z-index: 2; opacity: 0; filter: drop-shadow(0 0 7px var(--echo-accent)); animation: battle-ally-echo var(--battle-duration) both; }
+.battle-has-finisher .battle-vignette { background: radial-gradient(ellipse at center, transparent 50%, #0b0f1933); }
+.battle-has-finisher .battle-impact-glow { opacity: .45; }
+.battle-has-finisher .battle-signature { opacity: .7; }
+.battle-motion-reduced .battle-victim-fragments, .battle-motion-reduced .battle-ally-echo { display: none; }
+
+@keyframes battle-defense { 0%, 18% { transform: translate(0,0); } 45% { transform: translate(-2px,3px) rotate(-3deg); } 78%, 100% { transform: translate(-4px,5px) rotate(-5deg); } }
+@keyframes battle-defense-shield { 0%, 20% { transform: rotate(0); } 80%, 100% { transform: translate(9px,-8px) rotate(18deg); } }
+@keyframes battle-base-break { 0% { opacity: 1; } 35%, 100% { opacity: 0; } }
+@keyframes pawn-shield-break { 0% { opacity: 1; transform: rotate(0); } 17% { transform: translate(8%,-3%) rotate(14deg); } 37% { opacity: 1; transform: translate(7%,13%) rotate(28deg) scaleY(.87); } 72%, 100% { opacity: 0; transform: translate(17%,29%) rotate(74deg) scale(.8); } }
+@keyframes pawn-launch { 0% { opacity: 1; transform: translate(0,0); } 33% { opacity: 1; transform: translate(34%,-43%) rotate(68deg) scale(.9); } 77%, 100% { opacity: 0; transform: translate(68%,20%) rotate(144deg) scale(.5); } }
+@keyframes pawn-dissolve { 0% { opacity: 1; clip-path: inset(0); transform: scale(1); } 22% { opacity: .85; filter: drop-shadow(0 0 8px var(--battle-accent)); } 70%, 100% { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(-18%) scale(.7,1.2); } }
+@keyframes knight-unseat { 0%, 38% { opacity: 1; } 85%, 100% { opacity: 0; } }
+@keyframes knight-collapse { 0% { opacity: 1; transform: scale(1); } 26% { opacity: 1; transform: translateY(12%) scale(1.07,.8) rotate(7deg); } 65%, 100% { opacity: 0; transform: translateY(31%) scale(1.2,.35) rotate(13deg); } }
+@keyframes knight-scatter { 0%, 38% { opacity: 1; } 85%, 100% { opacity: 0; } }
+@keyframes bishop-unravel { 0% { opacity: 1; transform: rotate(0); } 20% { opacity: .9; transform: skewY(-7deg) scale(.8,1.12); } 46% { opacity: .65; transform: translateY(-12%) rotate(22deg) scale(.44,1.25); } 80%, 100% { opacity: 0; transform: translateY(-38%) rotate(83deg) scale(.05,1.5); } }
+@keyframes bishop-shatter { 0% { opacity: 1; filter: brightness(1); } 10% { opacity: 1; filter: brightness(1.8); } 13%, 100% { opacity: 0; } }
+@keyframes bishop-vanish { 0% { opacity: 1; transform: scale(1); } 25% { opacity: .9; transform: scale(.75,1.1); } 51% { opacity: .9; transform: scale(.04,1.4); } 72%, 100% { opacity: 0; transform: scale(0,.05); } }
+@keyframes rook-fracture { 0% { opacity: 1; } 10% { opacity: 1; transform: translateX(3%); } 13%, 100% { opacity: 0; } }
+@keyframes rook-topple { 0% { opacity: 1; transform: rotate(0); } 23% { transform: rotate(18deg); } 51% { opacity: 1; transform: translate(16%,18%) rotate(88deg); } 82%, 100% { opacity: 0; transform: translate(23%,25%) rotate(92deg) scale(.8); } }
+@keyframes rook-crumble { 0% { opacity: 1; clip-path: inset(0); transform: translateY(0); } 18% { transform: translateX(-3%); } 30% { transform: translateX(3%); clip-path: inset(17% 0 0); } 52% { opacity: .8; transform: translateY(14%) scaleY(.8); clip-path: inset(48% 0 0); } 83%, 100% { opacity: 0; transform: translateY(33%) scaleY(.3); clip-path: inset(90% 0 0); } }
+@keyframes queen-crownfall { 0% { opacity: 1; transform: rotate(0); } 28% { opacity: 1; transform: translateY(8%) rotate(-12deg); } 74%, 100% { opacity: 0; transform: translate(-9%,22%) rotate(-29deg) scale(.8); } }
+@keyframes queen-disperse { 0%, 9% { opacity: 1; filter: brightness(1.4); } 13%, 100% { opacity: 0; } }
+@keyframes queen-collapse { 0% { opacity: 1; transform: translateY(0); } 27% { opacity: 1; transform: translateY(17%) scale(1.02,.82); } 54% { opacity: .7; transform: translateY(26%) scale(1.14,.55); } 84%, 100% { opacity: 0; transform: translateY(32%) scale(1.26,.22); } }
+@keyframes reaction-shield-break { 0% { opacity: 1; transform: translate(9px,-8px) rotate(18deg); } 35% { opacity: 1; transform: translate(-23px,-17px) rotate(-73deg); } 82%, 100% { opacity: 0; transform: translate(-43px,35px) rotate(-148deg); } }
+@keyframes reaction-rider-launch { 0% { opacity: 1; transform: translate(0,0); } 37% { opacity: 1; transform: translate(-28px,-30px) rotate(-51deg); } 85%, 100% { opacity: 0; transform: translate(-55px,20px) rotate(-119deg); } }
+@keyframes reaction-mount-fall { 0% { opacity: 1; transform: rotate(0); } 70%, 100% { opacity: 0; transform: translate(14px,22px) rotate(37deg); } }
+@keyframes reaction-rider-fold { 0% { transform: rotate(0); } 50%, 100% { transform: translate(8px,18px) rotate(31deg); } }
+@keyframes reaction-rider-scatter { 0% { opacity: 1; transform: rotate(0); } 40% { opacity: 1; transform: translate(37px,-14px) rotate(76deg); } 90%, 100% { opacity: 0; transform: translate(62px,23px) rotate(140deg); } }
+@keyframes reaction-mount-scatter { 0% { opacity: 1; transform: rotate(0); } 45% { opacity: .9; transform: translate(-19px,8px) rotate(-17deg); } 90%, 100% { opacity: 0; transform: translate(-38px,27px) rotate(-34deg) scale(.7); } }
+@keyframes reaction-crown-flight { 0% { opacity: 1; transform: rotate(0); } 33% { opacity: 1; transform: translate(28px,-39px) rotate(83deg); } 80%, 100% { opacity: 0; transform: translate(53px,37px) rotate(194deg); } }
+@keyframes reaction-cape-fall { 0% { transform: scale(1); } 80%, 100% { transform: translateY(15px) scale(1.4,.55); } }
+@keyframes reaction-body-fragment { 0%, 10% { opacity: 0; transform: translate(0,0); } 13% { opacity: 1; } 52% { opacity: .95; transform: translate(calc(var(--reaction-side) * 38%),var(--reaction-lift)) rotate(calc(var(--reaction-side) * 33deg)); } 93%, 100% { opacity: 0; transform: translate(calc(var(--reaction-side) * 54%),43%) rotate(calc(var(--reaction-side) * 54deg)) scale(.5); } }
+@keyframes reaction-glass-fragment { 0%, 10% { opacity: 0; transform: scale(1); } 13% { opacity: 1; } 50% { opacity: .8; transform: translate(calc(var(--reaction-side) * 43%),-30%) rotate(calc(var(--reaction-side) * 66deg)) scale(.7); } 90%, 100% { opacity: 0; transform: translate(calc(var(--reaction-side) * 73%),-55%) rotate(calc(var(--reaction-side) * 120deg)) scale(.12); } }
+@keyframes reaction-royal-fragment { 0%, 10% { opacity: 0; transform: scale(1); } 13% { opacity: 1; } 43% { opacity: .8; transform: translate(calc(var(--reaction-side) * 45%),-15%) scale(.7,1.2); } 85%, 100% { opacity: 0; transform: translate(calc(var(--reaction-side) * 80%),-24%) scale(.1,1.5); } }
+@keyframes battle-ally-echo { 0%, 25% { opacity: 0; transform: translateY(12%) scale(.8); } 37%, 48% { opacity: .5; transform: translateY(0) scale(1); } 68%, 100% { opacity: 0; transform: translateY(-8%) scale(.9); } }
+.battle-has-finisher[data-finisher="pawn-giants-fall"] .battle-victim > .piece-art > .piece-art__figure { animation: battle-defense var(--battle-impact-delay) both, finisher-victim-trip var(--battle-reaction-duration) var(--battle-impact-delay) forwards; transform-origin: 50% 85%; }
+@keyframes finisher-victim-trip { 0% { transform: rotate(-5deg); } 35% { transform: translate(12px,4px) rotate(47deg); } 68%, 100% { transform: translate(19px,20px) rotate(86deg); } }

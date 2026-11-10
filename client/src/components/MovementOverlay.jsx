@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef } from 'react';
 import PieceArt from './PieceArt.jsx';
-import { MOVEMENT_REGISTRY, movementSpec, phaseTimings, PIECE_NAMES, squareCenter } from '../game/battles.js';
+import { MOVEMENT_REGISTRY, movementSpec, phaseTimings, PIECE_NAMES, presentationDuration, squareCenter } from '../game/battles.js';
 import './movement.css';
 
 /** Short role-specific travel, independent of the authoritative board position. */
-export function MovementOverlay({ event, orientation = 'white', motion = 'full', onComplete }) {
+export function MovementOverlay({ event, orientation = 'white', motion = 'full', prefs, onComplete }) {
   const spec = useMemo(() => movementSpec(event), [event]);
   const overlay = useRef(null);
   const complete = useRef(onComplete);
   useEffect(() => { complete.current = onComplete; }, [onComplete]);
   const eventId = event?.id ?? event?.seed;
   const hasEvent = Boolean(event);
-  const duration = motion === 'off' ? 0 : motion === 'reduced' ? 130 : spec?.duration || 0;
+  const duration = presentationDuration(event, { ...prefs, motion });
   const travelDuration = motion !== 'full' ? duration : spec?.promotion ? Math.min(580, duration * .6) : spec?.castle ? Math.min(650, duration * .8) : duration;
   const timing = spec ? phaseTimings(spec.choreography, travelDuration) : null;
   const attackAt = timing?.attackAt || 0;

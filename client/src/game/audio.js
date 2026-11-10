@@ -1,4 +1,4 @@
-import { battleSpec, phaseTimings, randomFromSeed } from './battles.js';
+import { battleSpec, phaseTimings, presentationDuration, randomFromSeed } from './battles.js';
 
 let context;
 
@@ -58,7 +58,7 @@ function rush(start, duration, volume, seed) {
 }
 
 /** Does not unlock audio itself: call unlockAudio from a player gesture. */
-export function playMoveSound(event, volume = 0.5, motion = 'full') {
+export function playMoveSound(event, volume = 0.5, motion = 'full', preferences = {}) {
   if (!context || context.state !== 'running') return;
   const gain = Math.max(0, Math.min(1, Number(volume) || 0));
   if (!gain) return;
@@ -77,11 +77,23 @@ export function playMoveSound(event, volume = 0.5, motion = 'full') {
   } else {
     const seed = event.seed ?? 1;
     const random = randomFromSeed(seed);
-    const battle = battleSpec(event);
-    const impactDelay = motion === 'off' ? 0 : motion === 'reduced' ? .045 : battle ? phaseTimings(battle.choreography, battle.duration).impactAt / 1000 : .4;
-    const impact = start + Math.min(0.65, impactDelay);
+    const battle = battleSpec(event, preferences);
+    const duration = presentationDuration(event, { ...preferences, motion }) / 1000;
+    const impactDelay = motion === 'reduced' ? .045 : battle ? phaseTimings(battle.finisher || battle.choreography, duration * 1000).impactAt / 1000 : .4;
+    const impact = start + impactDelay;
     const magical = ['b', 'q'].includes(event.piece);
     if (motion === 'full') noise(start + 0.04, Math.max(0.12, impact - start - 0.04), gain * 0.075, seed);
+    if (battle?.finisher && motion === 'full') {
+      const pitches = { p: [170, 95, 60], n: [130, 82, 55], b: [420, 630, 315], r: [84, 56, 38], q: [523, 784, 1047], k: [196, 294, 392] }[event.piece] || [160, 110, 60];
+      const id = battle.finisher.id;
+      const falling = ['queen-starfall', 'pawn-spearline', 'knight-thunderhoof'].includes(id);
+      pitches.forEach((pitch, index) => {
+        const time = impact + index * (falling ? .15 : .095);
+        note(pitch, magical ? pitch * 1.25 : pitch * .45, time, .31, gain * .055, magical ? 'sine' : 'triangle');
+      });
+      noise(impact + .02, Math.min(.7, duration * .25), gain * (magical ? .035 : .08), seed ^ 0x29ad);
+      note(magical ? 660 : 90, magical ? 330 : 35, start + duration * .72, .2, gain * .035, 'sine');
+    }
     note(magical ? 360 : 145, magical ? 680 : 48, impact, motion === 'full' ? .25 : .11, gain * 0.14, magical ? 'sine' : 'triangle');
     note(940 + random() * 400, 310, impact + 0.015, motion === 'full' ? .19 : .09, gain * 0.035, 'triangle');
     if (magical || event.combo || event.underdog) {
@@ -90,7 +102,7 @@ export function playMoveSound(event, volume = 0.5, motion = 'full') {
     }
   }
   if (event?.promotion) {
-    const promotionAt = motion === 'off' ? 0 : motion === 'reduced' ? .04 : (event.duration || (event.captured ? 1250 : 900)) * .00066;
+    const promotionAt = motion === 'off' ? 0 : motion === 'reduced' ? .04 : presentationDuration(event, { ...preferences, motion }) * .00066;
     [523, 659, 784].forEach((frequency, index) => note(frequency, frequency, start + promotionAt + index * .04, .16, gain * 0.045));
   }
   return () => sources.splice(0).forEach(cancel => cancel());

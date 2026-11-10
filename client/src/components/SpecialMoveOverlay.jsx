@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react';
 import PieceArt from './PieceArt.jsx';
-import { actorAccent, presentationUnitGeometry, specialMoveDetails, squareCenter } from '../game/battles.js';
+import { actorAccent, presentationDuration, presentationUnitGeometry, specialMoveDetails, squareCenter } from '../game/battles.js';
 import './special-move.css';
 
-export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'full', onComplete, withMovement = Boolean(event?.movementVariant) }) {
+export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'full', prefs, onComplete, withMovement = Boolean(event?.movementVariant) }) {
   const spec = useMemo(() => specialMoveDetails(event), [event]);
   const completed = useRef(onComplete);
   useEffect(() => { completed.current = onComplete; }, [onComplete]);
   const eventId = event?.id;
   const hasEvent = Boolean(event);
-  const fullDuration = spec ? Math.max(spec.duration, Math.min(1500, Number(event?.duration) || 0)) : 0;
-  const duration = motion === 'off' ? 0 : motion === 'reduced' ? 200 : fullDuration;
+  const duration = presentationDuration(event, { ...prefs, motion });
   useEffect(() => {
     if (!hasEvent) return undefined;
     const timer = window.setTimeout(() => completed.current?.(eventId), duration);

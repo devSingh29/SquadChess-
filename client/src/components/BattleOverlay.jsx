@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef } from 'react';
 import PieceArt from './PieceArt.jsx';
-import { actorAccent, battleSpec, phaseTimings, PIECE_NAMES, presentationUnitGeometry, randomFromSeed, squareCenter } from '../game/battles.js';
+import FinisherEffects from './FinisherEffects.jsx';
+import { actorAccent, battleSpec, phaseTimings, PIECE_NAMES, presentationDuration, presentationUnitGeometry, randomFromSeed, squareCenter } from '../game/battles.js';
 import './battle.css';
 
 function AttackSignature({ variant, x, y, from }) {
@@ -38,8 +39,8 @@ function AttackSignature({ variant, x, y, from }) {
   }
 }
 
-function makeScene(event, orientation) {
-  const spec = battleSpec(event);
+function makeScene(event, orientation, prefs) {
+  const spec = battleSpec(event, prefs);
   if (!spec) return null;
   const from = squareCenter(spec.from, orientation);
   const to = squareCenter(spec.to, orientation);
@@ -74,16 +75,16 @@ function makeScene(event, orientation) {
 }
 
 /** Sits inside the board's square wrapper. Effects never intercept board input. */
-export function BattleOverlay({ event, orientation = 'white', motion = 'full', onComplete }) {
-  const scene = useMemo(() => makeScene(event, orientation), [event, orientation]);
+export function BattleOverlay({ event, orientation = 'white', motion = 'full', prefs, boardShake = true, onComplete }) {
+  const scene = useMemo(() => makeScene(event, orientation, prefs), [event, orientation, prefs]);
   const unique = useId().replace(/:/g, '');
   const overlay = useRef(null);
   const complete = useRef(onComplete);
   useEffect(() => { complete.current = onComplete; }, [onComplete]);
-  const duration = motion === 'off' ? 0 : motion === 'reduced' ? 220 : (scene?.spec.duration || 0);
+  const duration = presentationDuration(event, { ...prefs, motion });
   const eventId = event?.id ?? event?.seed;
   const hasEvent = Boolean(event);
-  const timing = scene ? phaseTimings(scene.spec.choreography, duration) : null;
+  const timing = scene ? phaseTimings(scene.spec.finisher || scene.spec.choreography, duration) : null;
   const attackAt = timing?.attackAt || 0;
   const impactAt = timing?.impactAt || 0;
   const settleAt = timing?.settleAt || 0;
@@ -102,6 +103,11 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
 
   if (!scene || motion === 'off') return null;
   const { spec, from, to, hit, start, target, trail, shards, direction } = scene;
+  const isV2 = spec.presentationVersion === 2;
+  const finisher = motion === 'full' && spec.finisher;
+  const fragments = isV2 && ['bishop-shatter', 'rook-fracture', 'queen-disperse'].includes(spec.reaction.id);
+  const echo = finisher?.echo;
+  const echoTarget = echo && squareCenter(echo.to, orientation);
   const victimColor = spec.color === 'w' ? 'b' : 'w';
   const victimAccent = actorAccent(victimColor, victimColor.toUpperCase() + '1', spec.humanColor || 'w');
   const unit = presentationUnitGeometry([from, to, hit]);
@@ -118,6 +124,7 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
     '--battle-settle-delay': `${timing.settleAt}ms`,
     '--battle-hit-effect-duration': `${timing.impact + timing.settle * .65}ms`,
     '--battle-release-duration': `${duration - timing.impactAt}ms`,
+    '--battle-reaction-duration': `${duration - timing.impactAt}ms`,
     '--battle-accent': spec.accent,
     '--battle-unit-width': `${unit.width}%`,
     '--battle-unit-height': `${unit.height}%`,
@@ -133,10 +140,10 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
 
   return <div
     key={eventId} ref={overlay}
-    className={`battle-overlay battle-motion-${motion}${spec.combo ? ' battle-combo' : ''}${spec.underdog ? ' battle-underdog' : ''}`}
+    className={`battle-overlay battle-motion-${motion}${isV2 ? ' battle-version-two' : ''}${finisher ? ' battle-has-finisher' : ''}${spec.combo ? ' battle-combo' : ''}${spec.underdog ? ' battle-underdog' : ''}`}
     style={style} data-variant={spec.variant} data-attacker={spec.piece} data-victim={spec.captured}
     data-phase="anticipation" data-effect={spec.choreography.effect} data-reaction={spec.reaction.id} data-articulation={spec.reaction.articulation} data-fragments={spec.reaction.fragments}
-    data-promotes-to={spec.promotion || undefined}
+    data-promotes-to={spec.promotion || undefined} data-finisher={finisher?.id || undefined} data-presentation-version={spec.presentationVersion || 1}
     data-testid="battle-overlay" data-capture-square={spec.captureSquare}
     role="status" aria-label={`${spec.title}. ${PIECE_NAMES[spec.piece]} captures ${PIECE_NAMES[spec.captured]}.${spec.promotion ? ` Promotes to ${PIECE_NAMES[spec.promotion]}.` : ''}`}
   >
@@ -158,7 +165,7 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
         <path className="battle-impact-cross" d={`M${target.x - 95} ${target.y + 70}L${target.x + 85} ${target.y - 75}M${target.x - 60} ${target.y - 75}L${target.x + 70} ${target.y + 70}`} />
         <path className="battle-rune" d={`M${target.x} ${target.y - 77}L${target.x + 67} ${target.y + 38}L${target.x - 67} ${target.y + 38}ZM${target.x} ${target.y + 77}L${target.x - 67} ${target.y - 38}L${target.x + 67} ${target.y - 38}Z`} />
       </g>
-      <g className="battle-debris">
+      <g className="battle-debris" style={finisher ? { display: 'none' } : undefined}>
         {shards.map((shard, index) => <path
           key={index} className="battle-shard"
           d={`M${target.x - shard.size} ${target.y}l${shard.size} ${-shard.size * 1.7}l${shard.size} ${shard.size * 1.7}l${-shard.size} ${shard.size}Z`}
@@ -181,15 +188,18 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
         <path className="battle-promotion-crown" d={`M${to.x * 8 - 34} ${crownBaseY}l-5-30 23 13 16-24 16 24 23-13-5 30Z`} />
       </g>}
     </svg>
-    <div className="battle-unit battle-victim" style={{ left: `${hit.x}%`, top: `${hit.y}%`, animationName: spec.reaction.motionName }} aria-hidden="true">
+    {finisher && <FinisherEffects spec={spec} target={target} start={start} orientation={orientation} duration={duration} impactAt={timing.impactAt} boardShake={boardShake && prefs?.boardShake !== false} />}
+    <div className={`battle-unit battle-victim${fragments ? ' battle-victim-breakable' : ''}`} style={{ left: `${hit.x}%`, top: `${hit.y}%`, animationName: spec.reaction.motionName, ...(isV2 ? { animationDelay: `${timing.impactAt}ms`, animationDuration: `${duration - timing.impactAt}ms` } : {}) }} aria-hidden="true">
       <PieceArt type={spec.captured} color={victimColor} size="100%" accent={victimAccent} />
     </div>
+    {fragments && <div className="battle-unit battle-victim-fragments" data-testid="victim-fragments" style={{ left: `${hit.x}%`, top: `${hit.y}%` }} aria-hidden="true">{[0, 1, 2].map(index => <div key={index} className={`battle-victim-fragment battle-victim-fragment-${index}`} style={{ '--reaction-side': index - 1, '--reaction-lift': index === 1 ? '-35%' : '18%' }}><PieceArt type={spec.captured} color={victimColor} size="100%" accent={victimAccent} /></div>)}</div>}
+    {echoTarget && <div className="battle-unit battle-ally-echo" data-testid="battle-ally-echo" style={{ left: `${echoTarget.x}%`, top: `${echoTarget.y}%`, '--echo-accent': actorAccent(echo.color, echo.seat, spec.humanColor || 'w') }} aria-hidden="true"><PieceArt type={echo.piece} color={echo.color} size="100%" accent={actorAccent(echo.color, echo.seat, spec.humanColor || 'w')} /></div>}
     <div className="battle-unit battle-attacker" style={{ left: `${to.x}%`, top: `${to.y}%`, animationName: `battle-lifetime, ${spec.choreography.motionName}` }} aria-hidden="true">
       <PieceArt className={spec.promotion ? 'battle-attacker-original' : ''} type={spec.piece} color={spec.color} size="100%" accent={spec.accent} />
       {spec.promotion && <PieceArt className="battle-attacker-promoted" type={spec.promotion} color={spec.color} size="100%" accent={spec.accent} />}
     </div>
     <div className="battle-caption" style={hit.y < 25 ? { top: 'auto', bottom: '3%' } : undefined} aria-hidden="true">
-      <span className="battle-caption-kicker">{spec.combo ? 'Squad combination' : spec.underdog ? 'Giant slayer' : `${PIECE_NAMES[spec.piece]} takes ${PIECE_NAMES[spec.captured]}`}</span>
+      <span className="battle-caption-kicker">{finisher ? (spec.combo ? 'Allied finishing strike' : 'Legendary finish') : spec.combo ? 'Squad combination' : spec.underdog ? 'Giant slayer' : `${PIECE_NAMES[spec.piece]} takes ${PIECE_NAMES[spec.captured]}`}</span>
       <strong>{spec.title}</strong>
     </div>
   </div>;

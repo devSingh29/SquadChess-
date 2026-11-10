@@ -57,3 +57,9 @@ The root release branch is `release/battlefield-finishers`. The public repositor
 ### Milestone 1 — shared capture records and recovery
 
 Implemented the twelve stable finisher identities, fifteen saved reaction choices, exact eight-move spacing, coordinated double captures, ordinary fallback timing, old-save compatibility and new presentation preferences. Quiet legacy special moves keep their complete animation duration. All 107 game tests pass under Node 24.22.2; the original 93 remain included. The backup completion timer retains a short recovery allowance and animation-off stays immediate.
+
+### Milestone 2 — environmental battles and gallery
+
+Delivered all twelve environmental finishes, fifteen defeat reactions, generated sound, board-only shake and colored allied echoes. Original armed character artwork is unchanged. The gallery exposes every attack, finish, reaction, army and player; phone selections bring the battle into view. Earthbreaker uses branching cracks, Royal Judgment converging shields, and Spearline rising stone.
+
+All thirteen new battle browser scenarios pass, covering all finishes/reactions, both armies, four accents, board corners, both orientations, portrait/landscape phones, full/reduced/off motion, independent finisher/shake controls, import/replay fidelity, skip, pause, refresh and undo. Sound timing/cancellation tests, source checks and release build also pass. Current total: 107 game tests and 53 browser scenarios (the original 35 plus 18 new).

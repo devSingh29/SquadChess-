@@ -1,41 +1,60 @@
 # Extending SquadChess movement and battles
 
-The illustrated characters and battle drawings in this project are original SVG artwork authored for SquadChess. No external artwork, audio recordings, or copied animation assets are required. Sounds are generated with Web Audio.
+The illustrated characters and battle drawings are original SVG artwork authored for SquadChess. No external artwork, recordings, or copied animation assets are required. Sounds are generated with Web Audio. Preserve the armed humanoid characters, their small articulated limbs, and recognizable chess silhouettes.
 
-## The registries are the starting point
+## Start with the registries
 
-`client/src/game/choreography.js` exports three registries:
+`client/src/game/choreography.js` owns the existing motion library:
 
-- `BATTLE_REGISTRY`: four authored attacks for each of the six piece roles. An entry declares its stable `id`, title, CSS `motionName`, illustrated `effect`, `durationScale`, and anticipation/attack/impact/settle phases.
-- `REACTION_REGISTRY`: five defeated-piece reactions. Kings have no capture reaction because the game ends through checkmate. Entries select the main motion, articulated detail, and fragment material.
-- `MOVEMENT_REGISTRY`: two ordinary movements for each role, with a motion name, gait, trail effect, duration scale, and phases.
+- `BATTLE_REGISTRY`: 24 ordinary attacks, four per role. Each entry declares a stable `id`, title, CSS `motionName`, illustrated `effect`, `durationScale`, and anticipation/attack/impact/settle phases.
+- `MOVEMENT_REGISTRY`: 12 ordinary movements, two per role, with a motion name, gait, trail effect, duration scale, and phases.
+- `REACTION_REGISTRY`: the five original defender reactions, retained for old saved events. Kings have no capture reaction because the game ends through checkmate.
 
-Keep published IDs stable: accepted moves store their selected variant, seed, and duration so saves and replays reproduce the same choices. Unknown imported variants resolve to a known entry. Selection avoids repeating the previous capture or ordinary-move variant for the same piece role. Capture combinations require the immediately previous accepted move to be a capture by the same team.
+`client/src/game/finishers.js` adds version-two presentation:
 
-## Add an attack
+- `FINISHER_REGISTRY`: 12 environmental finishes, two per attacking role. Each permanent ID selects a title, attacker role, duration, motion name, and phase timing.
+- `REACTION_VARIANTS`: 15 defender reactions, three per capturable role. Entries name the main motion, articulated detail, and fragment material.
+- Selection helpers use accepted move facts, preceding events, and seeded random streams. Keep selection here, outside rendering and audio.
 
-1. Add an entry to its role in `BATTLE_REGISTRY`. Use the `capture()` helper to keep the contact point aligned with the 43% strike position in the existing movement curves. The helper derives phase fractions; `phaseTimings()` converts them to real milliseconds.
-2. Add the entry's movement keyframes to `client/src/components/battle.css`. The attacker and its weapon use active motion time, excluding the impact hold. `BattleOverlay` switches from anticipation to attack, then pauses the attacker during impact before resuming the settle. The registry's actual phase timings also drive glow, signature, particle, and sound timing.
-3. Add its original illustrated signature to `AttackSignature` in `BattleOverlay.jsx`, or explicitly reuse an existing `effect` from the registry. Particle spread is generated from the saved seed, never from uncontrolled random values during rendering.
-4. Add the short encounter explanation to `BattleGallery.jsx`. The gallery automatically takes its attack list from the registry-derived variants.
-5. Test normal captures, a capture near an edge, the rotated board, reduced/off motion, reconnect/replay, a capture followed quickly by another move, and pawn capture-promotion where relevant.
+Keep published IDs stable. New captures save `presentationVersion: 2`, `reactionVariant`, attack `variant`, `seed`, and `duration`. A selected finisher also saves `{ id, baseDuration, echo? }`: `baseDuration` is the ordinary capture length, while the event's `duration` is the full finish length. The optional echo records the actual preceding allied capture's `from`, `to`, `captureSquare`, `piece`, `color`, and `seat`. Old events without version two retain their original reactions and never gain a newly selected finisher during replay. Unknown future choices fall back to ordinary playback without changing the accepted move.
 
-Ordinary captures last 900–1100 milliseconds. Squad combinations, giant-slayer pawn captures, and capture-promotions receive an additional 250 milliseconds and remain below 1500. Capture-promotions retain the pawn during its attack, then replace it with the promoted role and a coronation finish in the final third.
+## Timing, rarity, and preferences
 
-## Add a reaction or ordinary movement
+Ordinary captures last 900–1100 milliseconds. Combinations, giant-slayer pawn captures, and capture-promotions can add 250 milliseconds and remain below 1500. Quiet travel lasts 350–650 milliseconds, with longer combined quiet-special presentation where needed. Environmental finishes last 2300–2800 milliseconds.
 
-For a reaction, change `REACTION_REGISTRY`, add its named keyframes, and use the registry's `articulation` attribute for any independently moving shield, rider, crown, or limb. The overlay reads `motionName` and `fragments` directly; these are operational settings, not documentation-only metadata.
+A finisher is eligible on capture-promotion, capture of a queen or rook, the second consecutive allied capture, or a mating capture. There must be at least eight accepted actions between recorded finishers. When a locked follow-up is also a capture, the controller reserves the finish for that second action. A combination requires the immediately preceding capture to belong to the same team's first seat without ending its turn. Selection avoids immediately repeating a role's previous finisher or a victim role's previous reaction.
 
-For an ordinary movement, add a `MOVEMENT_REGISTRY` entry and matching keyframes in `movement.css`. The gait determines leg motion, arms, rider movement, and floating details. Anticipation and settle phases start and stop the gait; the registry supplies the actual playback duration and motion name. Standard travel lasts 350–650 milliseconds, adjusted for distance. Keep ordinary moves quieter and shorter than captures.
+Use `battleSpec(event, preferences)` to resolve saved choices. Use `presentationDuration(event, preferences)` for every playback completion timer; do not invent another timing calculation. The controller fallback, live/replay overlays, and audio share this duration. `phaseTimings()` converts the resolved ordinary or finisher phases to milliseconds. The finisher's impact starts at 40.85% of its duration, matching the existing attack curves at 43% of active movement after excluding the impact hold.
 
-Characters in `PieceArt.jsx` expose separate left/right leg and arm groups, plus weapon, cape, shield, rider, mount, crown, and base groups as applicable. Preserve their identifiable chess silhouette, humanoid anatomy, and weapons when extending artwork.
+Preferences affect playback, never saved choices. `finishers: false` resolves the stored ordinary capture using `baseDuration`. Reduced motion takes 220 milliseconds and omits environmental effects; off takes zero and leaves the accepted board visible. `boardShake: false` disables only board shake. Sound is independent: off-motion sound is a tiny immediate cue, while full/reduced playback returns a cancellation function for skip, pause, mute, navigation, and unmount.
 
-## Verify and integrate
+## Add an ordinary attack or movement
 
-Run `npm run test --prefix client`, `npm run lint --prefix client`, and `npm run build --prefix client`. The focused battle tests ensure every registered motion has shipped keyframes, all roles are covered, timings remain bounded, and seeded choices remain reproducible. Browser checks should inspect the actual computed motion and all gallery choices.
+1. Add an attack entry to its role in `BATTLE_REGISTRY`. Use the `capture()` helper to align contact with the existing 43% strike position.
+2. Add movement keyframes to `client/src/components/battle.css`. Attacker movement excludes the impact hold; `BattleOverlay` pauses the attacker and weapon during contact. Effect and sound timing use the same phases.
+3. Add original signature geometry to `AttackSignature` in `BattleOverlay.jsx`, or explicitly reuse a known registry effect. Generate variation from the saved seed, never uncontrolled randomness while rendering.
+4. Add its brief description to `BattleGallery.jsx`. Its attack choices come from the registry-derived variants.
 
-Overlays never change chess state. The controller first accepts the move, records its presentation choices, and then plays the overlay. A completion callback and bounded fallback prevent animation from stranding a turn. On full motion, the board hides the ordinary pieces represented by the overlay; reduced/off motion leaves the accepted board visible. The application sets the initial motion preference from the device and honors later player overrides.
+For an ordinary movement, add a `MOVEMENT_REGISTRY` entry and matching keyframes in `movement.css`. The gait drives legs, arms, rider motion, or levitation. Keep quiet moves shorter and less dramatic than captures. `PieceArt.jsx` exposes left/right limbs, weapon, cape, shield, rider, mount, crown, and base groups as applicable.
 
-For castling, `MovementOverlay` also animates the rook returned by `castlingRookSquares(event)`. Hide both moving pieces' source and destination squares while full motion runs. For quiet promotion, render `MovementOverlay` with `SpecialMoveOverlay withMovement`: the pawn travels first and the promoted figure appears in the last third. Use the special overlay's completion callback for combined special effects. Capture-promotions are contained entirely within `BattleOverlay`.
+## Add a finisher or defender reaction
 
-Definitions: SVG = scalable vector drawing; registry = organized set of animation descriptions; keyframes = named poses over an animation; seed = saved number used to reproduce visual variation; gait = characteristic walking or travel motion; overlay = graphics above the board; impact hold = brief pause that gives a strike weight; Web Audio = the browser's sound-generation system.
+Add a finisher entry to `FINISHER_REGISTRY` without renaming published IDs. Keep the total duration bounded and preserve the contact alignment if reusing ordinary attacker paths. Implement its environmental drawing in `FinisherEffects.jsx` and the distinct sequence in `finisher-effects.css`; merely changing colors or particle counts is insufficient. Add the short description to `BattleGallery.jsx`. Gallery finishers are explicit previews that bypass match rarity and the gameplay finisher toggle, while honoring motion and board-shake preferences.
+
+Finishes remain within the visible board. Use the actual `captureSquare`, including en passant, and transform coordinates through `squareCenter()` for either orientation. Leave surrounding pieces and squares visible. The nearest `.board-scene` is the only shake target. Cancel its browser animation on unmount; never shake the document or sidebar. Maximum visible debris is 36 on desktop and 18 on phones; maximum tile fragments is 16/8. Ground cracks and other signature geometry do not need per-frame JavaScript.
+
+For a new version-two reaction, extend `REACTION_VARIANTS`, add its named keyframes in `battle.css`, and preserve the original `REACTION_REGISTRY` behavior. Version-two reactions begin at the shared impact time after a defensive pose. Use articulated groups for shields, riders, crowns, and limbs; use clipped character fragments only where the reaction calls for actual separation. Keep all destruction blood-free. Both the environmental allied trail and character echo derive colors from the saved actors via `actorAccent()`.
+
+## Integration and state boundaries
+
+Overlays never alter chess state. The controller accepts the move, records presentation choices, saves the resulting position, and then presents the event. Completion callbacks are guarded by event identity; a bounded controller fallback releases a stuck presentation. Skipping or interrupting a finish therefore preserves the same move and promised teammate continuation.
+
+Treat accepted events and published controller snapshots as immutable. Create new objects when state changes; do not deep-clone the entire match on every animation frame or clock tick. `storage.js` deep-copies at save and validation boundaries, and browser worker messages cross the browser's structured-copy boundary. Keep SVG nodes, animation handles, timers, and audio nodes in the presentation layer rather than saved events. See [ARCHITECTURE.md](ARCHITECTURE.md) for the ownership model.
+
+On full motion, hide the ordinary pieces represented by an overlay. For castling, `MovementOverlay` travels both the king and the rook returned by `castlingRookSquares(event)`; hide both source and destination squares. For quiet promotion, combine `MovementOverlay` with `SpecialMoveOverlay withMovement`: the pawn travels first and the promoted figure arrives in the final third, with the special overlay owning completion. Capture-promotion stays entirely in `BattleOverlay`.
+
+## Verify a change
+
+Run `npm run test --prefix client`, `npm run lint --prefix client`, and `npm run build --prefix client`. Run the browser suite with `npm run test:e2e --prefix client`; include packaged checks when preparing a release. Verify actual computed movement names, every gallery choice, both armies and all four actors, board corners and rotated orientation, reduced/off motion, disabled finishers/shake, faithful saved replay, and interrupted playback. The phone gallery scrolls an explicitly selected preview into view immediately.
+
+Definitions: SVG = scalable vector drawing; registry = organized animation descriptions; keyframes = named poses over time; seed = saved number producing repeatable variation; gait = characteristic travel motion; overlay = graphics above the board; impact hold = brief freeze emphasizing a strike; Web Audio = the browser's sound-generation system; immutable = not modified in place; snapshot = one published state; deep copy = an independent copy including nested values; structured copy = the browser's safe copying of data between contexts; boundary = a point where ownership changes; unmount = removal from the screen.
