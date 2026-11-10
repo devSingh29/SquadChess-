@@ -40,7 +40,7 @@ async function start(page, { black = false, clock = 'untimed' } = {}) {
   await page.getByRole('group', { name: 'Your teammate', exact: true }).getByRole('button', { name: 'easy', exact: true }).click();
   await page.getByRole('combobox', { name: 'Time control', exact: true }).selectOption(clock);
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Two moves. One intention.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Squad match' })).toBeVisible();
 }
 
 async function propose(page, from, to, touch = false) {
@@ -188,7 +188,7 @@ test('balanced opening also limits the computer White squad when playing Black',
 test('pause freezes a timed match and resume preserves its turn', async ({ page }) => {
   await start(page, { clock: '5+3' });
   await page.getByRole('button', { name: 'Pause game', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'The arena can wait.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Match paused' })).toBeVisible();
   const before = await savedMatch(page);
   await page.waitForTimeout(450);
   const after = await savedMatch(page);
@@ -205,7 +205,7 @@ test('reload preserves a proposed combination without applying it', async ({ pag
   const before = await savedMatch(page);
   await page.reload();
   await page.getByRole('button', { name: 'Continue match', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'The arena can wait.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Match paused' })).toBeVisible();
   await page.getByRole('button', { name: 'Return to battle' }).click();
   await expect(page.getByRole('button', { name: 'Play team turn', exact: true })).toBeEnabled();
   const after = await savedMatch(page);
@@ -221,7 +221,7 @@ test('resuming between allied moves uses the already-promised follow-up once', a
   game.lockedMove = { from: 'd2', to: 'd4' };
   game.phase = 'animating';
   await installFixture(page, game);
-  await expect(page.getByRole('heading', { name: 'The arena can wait.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Match paused' })).toBeVisible();
   await expect(page.getByTestId('battle-overlay')).toHaveCount(0);
   await page.getByRole('button', { name: 'Return to battle' }).click();
   await expect.poll(async () => (await savedMatch(page))?.events.length).toBe(4);
@@ -263,6 +263,7 @@ test('capture-promotion offers all four pieces and keeps the selected knight', a
 
 test('en passant battle removes the correct victim on a flipped board', async ({ page }, info) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await installFixture(page, fixture({ fen: '7k/8/8/3pP3/8/8/8/K7 w - d6 0 1' }));
@@ -285,18 +286,24 @@ test('settings survive reload and the field guide explains the two-move rule', a
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await page.screenshot({ path: info.outputPath('settings-desktop.png'), fullPage: true });
+  await dialog.getByRole('tab', { name: 'Animations', exact: true }).click();
   await dialog.getByRole('button', { name: 'reduced', exact: true }).click();
+  await dialog.getByRole('tab', { name: 'Board & pieces', exact: true }).click();
   await dialog.getByRole('button', { name: 'Walnut board', exact: true }).click();
   await dialog.getByRole('checkbox', { name: /Show coordinates/ }).uncheck();
+  await dialog.getByRole('tab', { name: 'Sound', exact: true }).click();
   await dialog.getByLabel('Battle sounds').check();
   await dialog.getByLabel('Volume').focus();
   await page.keyboard.press('End');
   await dialog.getByRole('button', { name: 'Done' }).click();
   await page.reload();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await dialog.getByRole('tab', { name: 'Animations', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'reduced', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await dialog.getByRole('tab', { name: 'Board & pieces', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Walnut board', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(dialog.getByRole('checkbox', { name: /Show coordinates/ })).not.toBeChecked();
+  await dialog.getByRole('tab', { name: 'Sound', exact: true }).click();
   await expect(dialog.getByLabel('Battle sounds')).toBeChecked();
   await expect(dialog.getByLabel('Volume')).toHaveValue('1');
   await dialog.getByRole('button', { name: 'Done' }).click();
@@ -314,9 +321,12 @@ test('damaged preferences show a recovery notice and use safe defaults', async (
   await expect(page.locator('.notice')).toContainText('Your saved settings are damaged or invalid');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const dialog = page.getByRole('dialog');
+  await dialog.getByRole('tab', { name: 'Animations', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'full', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await dialog.getByRole('tab', { name: 'Board & pieces', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Green board', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(dialog.getByRole('checkbox', { name: /Show coordinates/ })).toBeChecked();
+  await dialog.getByRole('tab', { name: 'Animations', exact: true }).click();
   await dialog.getByRole('button', { name: 'off', exact: true }).click();
   await dialog.getByRole('button', { name: 'Done' }).click();
   await page.reload();
@@ -325,6 +335,7 @@ test('damaged preferences show a recovery notice and use safe defaults', async (
 
 test('battle gallery exposes all 24 distinct attacks plus target and player variations', async ({ page }, info) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
   await page.getByRole('button', { name: 'Explore the capture battles', exact: true }).click();
   const gallery = page.getByRole('region', { name: 'Battle atelier', exact: true });
@@ -375,7 +386,7 @@ test('corrupt imports leave the saved battle intact and valid imports create a c
   await expect(page.locator('.history-card')).toHaveCount(1);
   await page.getByLabel('Import SquadChess game').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(exportMatch(original)) });
   await expect(page.locator('.notice')).toContainText('Game imported');
-  await expect(page.getByRole('heading', { name: 'The arena can wait.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Match paused' })).toBeVisible();
   expect((await savedMatch(page)).id).not.toBe(original.id);
   await page.getByRole('button', { name: 'Match History', exact: true }).click();
   await expect(page.locator('.history-card')).toHaveCount(2);
@@ -405,6 +416,7 @@ test('a finished battle has a complete replay and portable export', async ({ pag
 
 test('castling visibly moves the king and rook together without stationary duplicates', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await installFixture(page, fixture({ fen: '4k3/7p/8/8/8/8/7P/R3K2R w KQ - 0 1' }));
@@ -437,6 +449,7 @@ test('castling visibly moves the king and rook together without stationary dupli
 
 test('quiet promotion has one traveling pawn before the chosen piece appears', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await installFixture(page, fixture({ fen: '7k/P7/8/8/8/8/7p/4K3 w - - 0 1' }));
@@ -478,6 +491,7 @@ test('played movement choices survive portable export, import, and animated repl
   await page.getByRole('button', { name: 'Resign', exact: true }).click();
   await page.getByRole('button', { name: 'Resign match', exact: true }).click();
   const downloadReady = page.waitForEvent('download');
+  await page.getByRole('tab', { name: /^Moves/ }).click();
   await page.getByRole('button', { name: 'Save a portable copy' }).click();
   const download = await downloadReady;
   const exported = await readFile(await download.path());
@@ -488,6 +502,7 @@ test('played movement choices survive portable export, import, and animated repl
   expect(imported.id).not.toBe(original.id);
   expect(imported.events[0]).toMatchObject({ movementVariant: first.movementVariant, seed: first.seed, duration: first.duration, accent: first.accent });
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByRole('button', { name: 'Watch the replay' }).click();
@@ -499,6 +514,7 @@ test('played movement choices survive portable export, import, and animated repl
 
 test('opening Settings or leaving replay stops automatic progression', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   const game = fixture({ moves: [{ from: 'e2', to: 'e4' }, { from: 'd2', to: 'd4' }, { from: 'e7', to: 'e5' }, { from: 'd7', to: 'd5' }], finished: true });
@@ -528,6 +544,7 @@ test('opening Settings or leaving replay stops automatic progression', async ({ 
 
 test('a legacy capture without saved duration plays fully once in replay', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   const game = fixture({ fen: '7k/8/8/3p4/2P5/8/8/K7 w - - 0 1', moves: [{ from: 'c4', to: 'd5' }], finished: true });
@@ -568,7 +585,8 @@ const movementCases = [
 for (const { type, fen, from, to } of movementCases) {
   test(`ordinary ${type} moves use their own visible travel animation`, async ({ page }, info) => {
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
+    await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
     await page.getByRole('button', { name: 'Done', exact: true }).click();
     await installFixture(page, fixture({ fen }));
     await page.getByRole('button', { name: 'Return to battle' }).click();
@@ -591,7 +609,8 @@ for (const { type, fen, from, to } of movementCases) {
 for (const { type, fen, from } of captureCases) {
   test(`replay renders a saved ${type} capture family and its original variation`, async ({ page }, info) => {
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
+    await page.getByRole('dialog').getByRole('tab', { name: 'Animations', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'full', exact: true }).click();
     await page.getByRole('button', { name: 'Done', exact: true }).click();
     const game = fixture({ fen, moves: [{ from, to: 'd5' }], finished: true });
     game.events[0].variant = BATTLE_VARIANTS[type][1];

@@ -63,3 +63,9 @@ Implemented the twelve stable finisher identities, fifteen saved reaction choice
 Delivered all twelve environmental finishes, fifteen defeat reactions, generated sound, board-only shake and colored allied echoes. Original armed character artwork is unchanged. The gallery exposes every attack, finish, reaction, army and player; phone selections bring the battle into view. Earthbreaker uses branching cracks, Royal Judgment converging shields, and Spearline rising stone.
 
 All thirteen new battle browser scenarios pass, covering all finishes/reactions, both armies, four accents, board corners, both orientations, portrait/landscape phones, full/reduced/off motion, independent finisher/shake controls, import/replay fidelity, skip, pause, refresh and undo. Sound timing/cancellation tests, source checks and release build also pass. Current total: 107 game tests and 53 browser scenarios (the original 35 plus 18 new).
+
+### Milestone 3 — everyday controls
+
+Extracted HomeScreen, MatchPanel, shared labels and icons from the large application component. Added prominent Continue, remembered setup, Plan/Moves tabs, compact numbered combinations, explicit skipped-follow-up messages, Return to Match, replay-accurate captures/highlights, categorized settings and previews. New proposals and hints reveal Plan before confirmation. A 1366×768 laptop fits the board and essential controls; phone setup comes first and confirmation stays above navigation without covering the board.
+
+All original 35 browser scenarios and five new interface scenarios pass. Desktop and phone images are recorded in docs/screenshots/v1.1.0/. Independent review found the initially hidden plan when selecting from Moves; this is fixed and covered by a regression scenario.
