@@ -41,3 +41,19 @@ Updated: 2026-11-10. The approved local-game scope is complete.
 There are no known outstanding blockers in the authorized local version. Human multiplayer, accounts, rankings and public hosting remain outside the agreed scope. See `ARCHITECTURE.md`, `CONTRIBUTING_BATTLES.md` and `README.md` before future changes.
 
 There is no available tool to detect a 10% usage threshold reliably or trigger a usage reset. This checkpoint and Git history preserve progress if conversation context resets.
+
+## v1.1.0 release in progress — 2026-11-10
+
+Approved next scope: twelve rare environmental finishers, fifteen defeat reactions, compact desktop/phone controls, contributor tools, public checks and release. The existing 93 game checks and 35 browser scenarios remain the regression baseline.
+
+Milestones:
+1. Shared finisher selection, saved-event compatibility and playback controls — in progress.
+2. Twelve on-board finishers, expanded reactions, generated sound and gallery — in progress.
+3. Start/setup, match planning, replay and categorized settings improvements — in progress.
+4. Node 24, reproducible installation, contributor files, GitHub checks, reviewed change request and v1.1.0 — in progress.
+
+The root release branch is `release/battlefield-finishers`. The public repository's original README-only commit has been merged as history without replacing the current game or removing any existing commit. Public website hosting remains outside this release.
+
+### Milestone 1 — shared capture records and recovery
+
+Implemented the twelve stable finisher identities, fifteen saved reaction choices, exact eight-move spacing, coordinated double captures, ordinary fallback timing, old-save compatibility and new presentation preferences. Quiet legacy special moves keep their complete animation duration. All 107 game tests pass under Node 24.22.2; the original 93 remain included. The backup completion timer retains a short recovery allowance and animation-off stays immediate.

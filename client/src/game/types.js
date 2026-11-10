@@ -50,6 +50,24 @@
  * @property {boolean} [combo]
  * @property {boolean} [underdog]
  * @property {string} [title]
+ * @property {2} [presentationVersion] Absent on original capture records.
+ * @property {string} [reactionVariant] Permanent victim-reaction identity.
+ * @property {CaptureFinisher} [finisher] Saved special finish; preferences never alter this record.
+ *
+ * @typedef {object} CaptureFinisher
+ * @property {string} id Permanent finisher identity.
+ * @property {number} baseDuration Ordinary capture duration used when finishers are disabled.
+ * @property {{from:string,to:string,piece:PieceType,color:Team,seat:PlayerSeat,captureSquare:string}} [echo] The actual preceding allied capture.
+ *
+ * @typedef {object} Preferences
+ * @property {'full'|'reduced'|'off'} motion
+ * @property {boolean} sound
+ * @property {number} volume
+ * @property {'green'|'walnut'|'slate'} boardTheme
+ * @property {boolean} showCoordinates
+ * @property {boolean} finishers
+ * @property {boolean} boardShake
+ * @property {MatchConfig} matchDefaults Last selected new-match choices.
  *
  * @typedef {object} CombinationPreview
  * @property {MoveInput} first
@@ -98,4 +116,5 @@
  * Browser saves contain the full match. Portable exports omit derived board
  * snapshots; storage validates and reconstructs them before returning SavedMatch.
  */
-export {};
+/** Shared value so settings validation does not depend on the game controller. */
+export const DEFAULT_MATCH_CONFIG = Object.freeze({ humanColor: 'w', teammateDifficulty: 'medium', opponentDifficulty: 'easy', timeControl: 'untimed', balancedOpening: false });

@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { applyMove, createPosition, RULESET } from './rules.js';
 import { StorageError, exportMatch, exportMoveList, importMatch, loadPreferences, savePreferences, validateSavedMatch, saveMatch } from './storage.js';
+import { battleDetails, battleSpec } from './battles.js';
+import { DEFAULT_MATCH_CONFIG } from './types.js';
 
 function matchFixture(moves = [], { balancedOpening = false } = {}) {
   const settings = { balancedOpening, fullTwoMoveOpening: !balancedOpening };
@@ -37,6 +39,66 @@ test('save round trip rebuilds legal history and keeps battle variations', () =>
   assert.equal(saved.events[0].movementVariant, 'pawn-step');
   assert.equal(saved.events[4].captureSquare, 'd5');
   assert.deepEqual(saved.events[5].positionAfter, saved.position);
+});
+
+function finisherFixture() {
+  const match = matchFixture(['e2e4', 'd2d4', 'e7e5', 'd7d5', 'e4d5', 'd4e5']);
+  for (const index of [4, 5]) {
+    const event = match.events[index];
+    Object.assign(event, battleDetails(event, match.events.slice(0, index), 'w', index, { deferFinisher: index === 4 }));
+  }
+  return match;
+}
+
+test('new capture records preserve every visual choice and allied echo on export and reconstruction', () => {
+  const original = finisherFixture();
+  const saved = validateSavedMatch(JSON.parse(exportMatch(original)));
+  for (const index of [4, 5]) {
+    for (const key of ['presentationVersion', 'seed', 'variant', 'duration', 'reactionVariant', 'finisher']) {
+      assert.deepEqual(saved.events[index][key], original.events[index][key]);
+    }
+  }
+  assert.equal(saved.events[4].finisher, undefined);
+  assert.equal(saved.events[5].finisher.echo.from, 'e4');
+  assert.equal(battleSpec(saved.events[5], { finishers: false }).duration, saved.events[5].finisher.baseDuration);
+  saved.events[5].finisher.echo.from = 'a1';
+  assert.equal(original.events[5].finisher.echo.from, 'e4', 'Saved records do not share mutable echo objects');
+});
+
+test('safe unknown future presentation names survive imports and use ordinary playback', () => {
+  const match = finisherFixture();
+  match.events[5].finisher.id = 'future-pawn-finish';
+  match.events[5].reactionVariant = 'future-pawn-reaction';
+  match.events[5].presentationVersion = 3;
+  const saved = validateSavedMatch(JSON.parse(exportMatch(match)));
+  assert.deepEqual(saved.events[5].finisher, match.events[5].finisher);
+  assert.equal(saved.events[5].reactionVariant, 'future-pawn-reaction');
+  assert.equal(saved.events[5].presentationVersion, 3);
+  assert.equal(battleSpec(saved.events[5]).finisher, null);
+  assert.equal(battleSpec(saved.events[5]).duration, saved.events[5].finisher.baseDuration);
+});
+
+test('malformed capture metadata and forged allied echoes are rejected before replay', () => {
+  const patches = [
+    event => { event.presentationVersion = '2'; },
+    event => { event.reactionVariant = 8; },
+    event => { event.reactionVariant = 'queen-crownfall'; },
+    event => { event.finisher = null; },
+    event => { event.finisher.id = 'king-royal-judgment'; },
+    event => { event.finisher.baseDuration = -1; },
+    event => { event.finisher.echo.from = 'a1'; },
+    event => { event.finisher.echo.piece = 'q'; },
+    event => { event.finisher.echo.injected = true; },
+    event => { event.duration = 9999; },
+  ];
+  for (const patch of patches) {
+    const match = finisherFixture();
+    patch(match.events[5]);
+    assert.throws(() => validateSavedMatch(match), error => error.code === 'invalid-save');
+  }
+  const quiet = matchFixture(['e2e4']);
+  Object.assign(quiet.events[0], { presentationVersion: 2, reactionVariant: 'pawn-launch' });
+  assert.throws(() => validateSavedMatch(quiet), /quiet move/);
 });
 
 test('balanced opening survives save and replay with one White opening move', () => {
@@ -233,10 +295,10 @@ test('preferences round trip and unavailable settings storage is reported', () =
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (key) => records.get(key) ?? null, setItem: (key, value) => records.set(key, value) } });
   try {
     assert.deepEqual(loadPreferences(), {});
-    const preferences = { motion: 'reduced', volume: 0.4, sound: true, boardTheme: 'walnut', showCoordinates: false };
+    const preferences = { motion: 'reduced', volume: 0.4, sound: true, boardTheme: 'walnut', showCoordinates: false, finishers: false, boardShake: true, matchDefaults: { ...DEFAULT_MATCH_CONFIG, humanColor: 'b', balancedOpening: true } };
     savePreferences({ ...preferences, obsoleteSetting: 'ignored' });
     assert.deepEqual(loadPreferences(), preferences);
-    for (const patch of [{ motion: 'spinning' }, { volume: 9 }, { sound: 'yes' }, { boardTheme: 'unknown' }, { showCoordinates: 'no' }]) {
+    for (const patch of [{ motion: 'spinning' }, { volume: 9 }, { sound: 'yes' }, { boardTheme: 'unknown' }, { showCoordinates: 'no' }, { finishers: 'yes' }, { boardShake: 0 }, { matchDefaults: { ...DEFAULT_MATCH_CONFIG, balancedOpening: 1 } }, { matchDefaults: { ...DEFAULT_MATCH_CONFIG, opponentDifficulty: 'impossible' } }, { matchDefaults: { humanColor: 'w' } }]) {
       assert.throws(() => savePreferences({ ...preferences, ...patch }), error => error.code === 'preferences-invalid');
       assert.deepEqual(loadPreferences(), preferences);
     }

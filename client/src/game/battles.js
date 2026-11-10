@@ -1,5 +1,7 @@
 import { BATTLE_REGISTRY, MOVEMENT_REGISTRY, REACTION_REGISTRY, resolveAttack, resolveMovement } from './choreography.js';
+import { FINISHER_REGISTRY, REACTION_VARIANTS, alliedCapturePredecessor, selectFinisher, selectReactionVariant } from './finishers.js';
 export { BATTLE_REGISTRY, MOVEMENT_REGISTRY, REACTION_REGISTRY, phaseTimings } from './choreography.js';
+export { FINISHER_REGISTRY, REACTION_VARIANTS } from './finishers.js';
 
 export const BATTLE_VARIANTS = Object.freeze(Object.fromEntries(Object.entries(BATTLE_REGISTRY).map(([piece, entries]) => [piece, Object.freeze(entries.map(entry => entry.id))])));
 
@@ -34,8 +36,8 @@ export function actorAccent(color, seat, humanColor = 'w') {
     : (firstSeat ? '#fb7e8b' : '#bd9bff');
 }
 
-/** Pass all preceding accepted moves so combo detection respects intervening moves. */
-export function battleDetails(move, previousEvents = [], humanColor = 'w', explicitSeed) {
+/** Keep the original attack selection unchanged for existing saved battles. */
+function baseBattleDetails(move, previousEvents = [], humanColor = 'w', explicitSeed) {
   if (!move?.captured || move.captured === 'k' || !BATTLE_VARIANTS[move.piece]) return null;
   const color = move.color || String(move.seat || 'W1')[0].toLowerCase();
   const seed = typeof explicitSeed === 'number'
@@ -64,24 +66,61 @@ export function battleDetails(move, previousEvents = [], humanColor = 'w', expli
   };
 }
 
-export function battleSpec(event) {
+/** Pass all preceding accepted moves, including quiet moves, for cooldown and combos. */
+export function battleDetails(move, previousEvents = [], humanColor = 'w', explicitSeed, options = {}) {
+  const base = baseBattleDetails(move, previousEvents, humanColor, explicitSeed);
+  if (!base) return null;
+  const combo = Boolean(alliedCapturePredecessor(move, previousEvents));
+  // Separate random streams preserve the original attack and duration choices.
+  const reactionVariant = selectReactionVariant(move.captured, previousEvents, randomFromSeed(base.seed ^ 0x3c6ef372));
+  const finisher = selectFinisher(move, previousEvents, {
+    ...options, index: move.index ?? previousEvents.length,
+    baseDuration: base.duration, random: randomFromSeed(base.seed ^ 0xa54ff53a),
+  });
+  return {
+    ...base, combo, presentationVersion: 2, reactionVariant,
+    ...(finisher ? { finisher, duration: FINISHER_REGISTRY[finisher.id].duration } : {}),
+  };
+}
+
+export function battleSpec(event, preferences = {}) {
   if (!event?.captured || event.captured === 'k') return null;
-  const defaults = battleDetails(event, [], event.humanColor || 'w', event.seed);
+  const defaults = baseBattleDetails(event, [], event.humanColor || 'w', event.seed);
   if (!defaults) return null;
   const variants = BATTLE_VARIANTS[event.piece];
   const variant = variants.includes(event.variant) ? event.variant : defaults.variant;
   const choreography = resolveAttack(event.piece, variant);
+  const selectedReaction = event.presentationVersion === 2
+    ? REACTION_VARIANTS[event.captured]?.find(entry => entry.id === event.reactionVariant) : null;
+  const selectedFinisher = event.presentationVersion === 2 && selectedReaction && preferences.finishers !== false
+    ? FINISHER_REGISTRY[event.finisher?.id] : null;
+  const finisher = selectedFinisher?.piece === event.piece
+    ? { ...selectedFinisher, ...event.finisher } : null;
+  const ordinaryDuration = event.finisher ? event.finisher.baseDuration : event.duration;
+  const duration = finisher
+    ? (Number.isFinite(event.duration) ? Math.max(2300, Math.min(2800, event.duration)) : finisher.duration)
+    : (Number.isFinite(ordinaryDuration) ? Math.max(200, Math.min(2400, ordinaryDuration)) : defaults.duration);
   return {
     ...defaults,
     ...event,
     variant,
-    title: choreography.title,
+    title: finisher?.title || choreography.title,
     choreography,
-    reaction: REACTION_REGISTRY[event.captured] || REACTION_REGISTRY.p,
+    finisher,
+    reaction: selectedReaction || REACTION_REGISTRY[event.captured] || REACTION_REGISTRY.p,
     color: event.color || String(event.seat || 'W1')[0].toLowerCase(),
     captureSquare: event.captureSquare || event.to,
-    duration: Number.isFinite(event.duration) ? Math.max(200, Math.min(2400, event.duration)) : defaults.duration,
+    duration,
   };
+}
+
+/** One playback clock for live turns, replay, audio, and reduced-motion modes. */
+export function presentationDuration(event, preferences = {}) {
+  if (!event || preferences.motion === 'off') return 0;
+  if (preferences.motion === 'reduced') return 220;
+  const captureDuration = battleSpec(event, preferences)?.duration;
+  if (captureDuration) return captureDuration;
+  return Math.max(movementSpec(event)?.duration || 270, specialMoveDetails(event)?.duration || 0);
 }
 
 export function movementDetails(move, previousEvents = [], humanColor = 'w', explicitSeed) {

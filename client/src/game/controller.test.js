@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMatch, GameController } from './controller.js';
 import { applyMove, createPosition } from './rules.js';
+import { presentationDuration } from './battles.js';
 
 const e4 = { from: 'e2', to: 'e4' };
 const nf3 = { from: 'g1', to: 'f3' };
@@ -50,6 +51,57 @@ function loadPosition(controller, fen, options = {}, config = {}) {
   controller.resume();
   return match;
 }
+
+test('confirmed capture pairs reserve the finisher for move two independently of preferences', async (t) => {
+  const clock = controlledClock(t);
+  const { controller, calls, saves } = harness(t);
+  const scheduled = [];
+  const originalTimeout = globalThis.setTimeout;
+  t.mock.method(globalThis, 'setTimeout', (callback, duration) => {
+    scheduled.push(duration);
+    return originalTimeout(callback, duration);
+  });
+  controller.setPreferences({ finishers: false });
+  loadPosition(controller, '7k/8/8/3qp3/4PP2/8/8/K7 w - - 0 1');
+  const proposal = controller.propose({ from: 'e4', to: 'd5' });
+  calls[0].resolve({ move: { from: 'f4', to: 'e5' } });
+  await proposal;
+  controller.confirm();
+  const first = controller.getSnapshot().presentation;
+  assert.equal(first.captured, 'q');
+  assert.equal(first.finisher, undefined, 'The confirmed second capture owns the finish');
+  controller.skipAnimation();
+  const second = controller.getSnapshot().presentation;
+  assert.equal(second.seat, 'w2');
+  assert.ok(second.finisher, 'Disabling playback must not erase the saved finisher');
+  assert.equal(second.finisher.echo.from, first.from);
+  assert.equal(second.finisher.echo.piece, first.piece);
+  assert.equal(scheduled.at(-1), presentationDuration(second, { finishers: false }) + 60);
+  const immutable = structuredClone(second);
+  clock.value += 300;
+  controller.setPreferences({ finishers: true });
+  assert.equal(scheduled.at(-1), presentationDuration(second) - 300 + 60);
+  assert.deepEqual(controller.getSnapshot().presentation, immutable);
+  controller.setPreferences({ motion: 'reduced' });
+  assert.equal(scheduled.at(-1), 0, 'An elapsed reduced presentation ends promptly');
+  await controller.saveChain;
+  assert.deepEqual(saves.at(-1).events[1].finisher, second.finisher);
+});
+
+test('a first-move capture mate gets a finisher without requesting a teammate move', async (t) => {
+  const { controller, calls } = harness(t);
+  loadPosition(controller, '5n1k/8/6K1/5Q2/8/8/8/8 w - - 0 1');
+  await controller.propose({ from: 'f5', to: 'f8' });
+  assert.equal(calls.length, 0);
+  controller.confirm();
+  const match = controller.getSnapshot().match;
+  assert.equal(match.position.result.reason, 'checkmate');
+  assert.equal(match.events[0].captured, 'n');
+  assert.ok(match.events[0].finisher);
+  assert.equal(match.lockedMove, null);
+  controller.skipAnimation();
+  assert.equal(controller.getSnapshot().match.phase, 'finished');
+});
 
 test('changing a proposed move cancels its request and ignores its late successful reply', async (t) => {
   const { controller, calls } = harness(t);

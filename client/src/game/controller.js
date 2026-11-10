@@ -1,9 +1,10 @@
 import { createPosition, applyMove, RULESET } from './rules.js';
-import { battleDetails, movementDetails, specialMoveDetails, hashSeed } from './battles.js';
+import { battleDetails, movementDetails, presentationDuration, specialMoveDetails, hashSeed } from './battles.js';
 import { saveMatch } from './storage.js';
+import { DEFAULT_MATCH_CONFIG } from './types.js';
 
-export const DEFAULT_CONFIG = { humanColor: 'w', teammateDifficulty: 'medium', opponentDifficulty: 'easy', timeControl: 'untimed', balancedOpening: false };
-export const DEFAULT_PREFERENCES = { motion: 'full', sound: true, volume: 0.35, boardTheme: 'green', showCoordinates: true };
+export const DEFAULT_CONFIG = DEFAULT_MATCH_CONFIG;
+export const DEFAULT_PREFERENCES = { motion: 'full', sound: true, volume: 0.35, boardTheme: 'green', showCoordinates: true, finishers: true, boardShake: true, matchDefaults: DEFAULT_CONFIG };
 const other = color => color === 'w' ? 'b' : 'w';
 const copyMove = move => ({ from: move.from, to: move.to, ...(move.promotion ? { promotion: move.promotion } : {}) });
 const clockConfig = control => control === '5+3' ? { w: 300000, b: 300000, increment: 3000, enabled: true } : control === '10+5' ? { w: 600000, b: 600000, increment: 5000, enabled: true } : { w: 0, b: 0, increment: 0, enabled: false };
@@ -67,7 +68,21 @@ export class GameController {
     });
   }
   clearNotice = () => this.publish({ notice: '' });
-  setPreferences = preferences => { this.preferences = { ...DEFAULT_PREFERENCES, ...preferences }; };
+  setPreferences = preferences => {
+    this.preferences = { ...DEFAULT_PREFERENCES, ...preferences };
+    if (this.state.presentation) this.schedulePresentation();
+  };
+  schedulePresentation() {
+    const event = this.state.presentation;
+    if (!event) return;
+    clearTimeout(this.presentationTimer);
+    const elapsed = Math.max(0, now() - this.presentationStartedAt);
+    // Let the overlay's completion lead; this recovery timer allows one paint
+    // before its first frame without changing the authored presentation length.
+    const grace = this.preferences.motion === 'off' ? 0 : 60;
+    const remaining = Math.max(0, presentationDuration(event, this.preferences) - elapsed + grace);
+    this.presentationTimer = setTimeout(() => this.finishPresentation(event.id), remaining);
+  }
   cancel() {
     this.epoch++; this.abortController?.abort(); this.abortController = null;
     clearTimeout(this.presentationTimer); this.publish({ hinting: false });
@@ -181,10 +196,14 @@ export class GameController {
     this.chargeClock();
     const match = this.state.match; if (!match || match.position.result) return;
     const { position, move: details } = applyMove(match.position, move);
+    const continuing = position.slot === 1 && position.team === match.position.team && !position.result;
+    // The promised move is already verified by confirm/advance. Inspect its facts
+    // without playing it so two allied captures reserve the finish for move two.
+    const nextCapture = continuing && lockedMove ? applyMove(position, lockedMove).move.captured : null;
     const special = details.captured ? null : specialMoveDetails(details);
     const seed = hashSeed(`${match.id}:${match.events.length}:${details.from}:${details.to}`);
     const animation = details.captured
-      ? battleDetails(details, match.events, match.config.humanColor, seed)
+      ? battleDetails(details, match.events, match.config.humanColor, seed, { deferFinisher: Boolean(nextCapture), result: position.result })
       : movementDetails(details, match.events, match.config.humanColor, seed);
     const event = {
       ...details, id: `${match.id}:${match.events.length + 1}:${crypto.randomUUID().slice(0, 8)}`,
@@ -196,12 +215,11 @@ export class GameController {
     if (details.endsTurn && clocks.enabled) clocks[match.position.team] += clocks.increment;
     const phase = 'animating';
     this.update({ position, events: [...match.events, event], revision: match.revision + 1, clocks, phase,
-      lockedMove: position.slot === 1 && position.team === match.position.team && !position.result ? lockedMove : null,
+      lockedMove: continuing ? lockedMove : null,
       preview: null, error: null });
+    this.presentationStartedAt = now();
     this.publish({ presentation: event });
-    const motion = this.preferences.motion;
-    const duration = motion === 'off' ? 0 : motion === 'reduced' ? 220 : (event.duration || 270);
-    this.presentationTimer = setTimeout(() => this.finishPresentation(event.id), duration + (motion === 'off' ? 0 : 60));
+    this.schedulePresentation();
   }
   finishPresentation = id => {
     if (this.state.presentation?.id !== id) return;

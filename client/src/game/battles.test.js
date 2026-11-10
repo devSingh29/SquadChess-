@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { actorAccent, BATTLE_REGISTRY, BATTLE_VARIANTS, MOVEMENT_REGISTRY, REACTION_REGISTRY, battleDetails, battleSpec, castlingRookSquares, hashSeed, movementDetails, movementSpec, phaseTimings, presentationUnitGeometry, randomFromSeed, specialMoveDetails, squareCenter } from './battles.js';
+import { actorAccent, BATTLE_REGISTRY, BATTLE_VARIANTS, MOVEMENT_REGISTRY, REACTION_REGISTRY, battleDetails, battleSpec, castlingRookSquares, hashSeed, movementDetails, movementSpec, phaseTimings, presentationDuration, presentationUnitGeometry, randomFromSeed, specialMoveDetails, squareCenter } from './battles.js';
 
 const capture = { id: 'move-1', from: 'e4', to: 'd5', piece: 'p', color: 'w', seat: 'W1', captured: 'p' };
 
@@ -102,12 +102,14 @@ test('seed generators are repeatable and remain within the expected range', () =
   }
 });
 
-test('ordinary captures last 900–1100ms and special combinations remain under 1500ms', () => {
+test('ordinary captures last 900–1100ms and disabled finishers retain their short recorded capture', () => {
   for (let seed = 0; seed < 100; seed += 1) {
     const normal = battleDetails(capture, [], 'w', seed);
     assert.ok(normal.duration >= 900 && normal.duration <= 1100);
     const special = battleDetails({ ...capture, captured: 'q' }, [capture], 'w', seed);
-    assert.ok(special.duration >= 900 && special.duration <= 1500);
+    assert.ok(special.duration >= 2300 && special.duration <= 2800);
+    const ordinary = battleSpec({ ...capture, captured: 'q', ...special }, { finishers: false });
+    assert.ok(ordinary.duration >= 900 && ordinary.duration <= 1500);
   }
 });
 
@@ -183,7 +185,59 @@ test('capture-promotion preserves the final role and reserves a bounded coronati
   const event = battleSpec({ ...move, ...details });
   assert.equal(event.piece, 'p');
   assert.equal(event.promotion, 'q');
-  assert.ok(event.duration >= 1150 && event.duration <= 1350);
+  assert.ok(event.duration >= 2300 && event.duration <= 2800);
+  assert.ok(event.finisher.baseDuration >= 1150 && event.finisher.baseDuration <= 1350);
+});
+
+test('original capture records retain their original reaction and duration', () => {
+  const old = { ...capture, seed: 9, variant: 'pawn-thrust', duration: 1040 };
+  const resolved = battleSpec(old);
+  assert.equal(resolved.finisher, null);
+  assert.equal(resolved.duration, old.duration);
+  assert.equal(resolved.reaction, REACTION_REGISTRY.p);
+  assert.equal(resolved.presentationVersion, undefined);
+});
+
+test('unknown future capture metadata falls back to its recorded ordinary attack', () => {
+  const move = { ...capture, captured: 'r' };
+  const saved = { ...move, ...battleDetails(move, [], 'w', 29) };
+  const unknownId = { ...saved, finisher: { ...saved.finisher, id: 'future-pawn-finish' } };
+  const unknownReaction = { ...saved, reactionVariant: 'future-rook-reaction' };
+  const unknownVersion = { ...saved, presentationVersion: 3 };
+  for (const event of [unknownId, unknownReaction, unknownVersion]) {
+    const resolved = battleSpec(event);
+    assert.equal(resolved.finisher, null);
+    assert.equal(resolved.duration, saved.finisher.baseDuration);
+    assert.equal(resolved.variant, saved.variant);
+  }
+  assert.equal(battleSpec(unknownReaction).reaction, REACTION_REGISTRY.r);
+  assert.equal(battleSpec(unknownVersion).reaction, REACTION_REGISTRY.r);
+});
+
+test('shared presentation timing respects finishers and motion without changing saved choices', () => {
+  const move = { ...capture, captured: 'q' };
+  const event = { ...move, ...battleDetails(move, [], 'w', 31) };
+  const original = structuredClone(event);
+  assert.equal(presentationDuration(event), event.duration);
+  assert.equal(presentationDuration(event, { finishers: false }), event.finisher.baseDuration);
+  assert.equal(presentationDuration(event, { motion: 'reduced' }), 220);
+  assert.equal(presentationDuration(event, { motion: 'off' }), 0);
+  assert.equal(presentationDuration(null), 0);
+  assert.deepEqual(event, original);
+  const quiet = { from: 'e2', to: 'e4', piece: 'p', color: 'w', duration: 487 };
+  assert.equal(presentationDuration(quiet), 487);
+});
+
+test('old quiet special records without durations reserve their complete special presentation', () => {
+  for (const event of [
+    { from: 'a7', to: 'a8', piece: 'p', color: 'w', promotion: 'q' },
+    { from: 'e1', to: 'g1', piece: 'k', color: 'w', castle: 'kingside' },
+    { from: 'f5', to: 'f8', piece: 'q', color: 'w', givesCheck: true },
+  ]) {
+    assert.ok(presentationDuration(event) >= specialMoveDetails(event).duration);
+    assert.equal(presentationDuration(event, { motion: 'reduced' }), 220);
+    assert.equal(presentationDuration(event, { motion: 'off' }), 0);
+  }
 });
 
 test('castling identifies the companion rook in either direction and on either team', () => {

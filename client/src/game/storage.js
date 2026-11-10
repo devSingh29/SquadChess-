@@ -1,4 +1,6 @@
 import { applyMove, createPosition, RULESET } from './rules.js';
+import { FINISHER_REGISTRY, REACTION_VARIANTS } from './finishers.js';
+import { DEFAULT_MATCH_CONFIG } from './types.js';
 
 const DATABASE_NAME = 'squadchess-local';
 const DATABASE_VERSION = 1;
@@ -57,7 +59,7 @@ function validatedApply(position, value, label) {
   }
 }
 
-function copyBattleData(event) {
+function copyBattleData(event, move, previous) {
   const result = {};
   if (event.seed != null) result.seed = boundedNumber(event.seed, 0, 0xffffffff, 'battle variation', true);
   if (event.variant != null) result.variant = boundedText(event.variant, 64, 'battle style');
@@ -75,6 +77,33 @@ function copyBattleData(event) {
   if (event.humanColor != null) {
     if (!['w', 'b'].includes(event.humanColor)) invalid('battle team is invalid.');
     result.humanColor = event.humanColor;
+  }
+  if (event.presentationVersion !== undefined || event.reactionVariant !== undefined || event.finisher !== undefined) {
+    if (!move.captured) invalid('capture presentation data is attached to a quiet move.');
+    result.presentationVersion = boundedNumber(event.presentationVersion, 2, 100, 'presentation version', true);
+    result.reactionVariant = boundedText(event.reactionVariant, 64, 'victim reaction');
+    const knownReaction = Object.entries(REACTION_VARIANTS).find(([, entries]) => entries.some(entry => entry.id === event.reactionVariant));
+    if (knownReaction && knownReaction[0] !== move.captured) invalid('the victim reaction belongs to a different piece.');
+    if (event.finisher !== undefined) {
+      if (!isObject(event.finisher) || Object.keys(event.finisher).some(key => !['id', 'baseDuration', 'echo'].includes(key))) invalid('the capture finisher is invalid.');
+      const id = boundedText(event.finisher.id, 64, 'finisher identity');
+      const baseDuration = boundedNumber(event.finisher.baseDuration, 200, 2400, 'ordinary capture duration');
+      boundedNumber(event.duration, 2300, 2800, 'finisher duration');
+      const known = Object.hasOwn(FINISHER_REGISTRY, id) ? FINISHER_REGISTRY[id] : null;
+      if (known && known.piece !== move.piece) invalid('the finisher belongs to a different attacker.');
+      result.finisher = { id, baseDuration };
+      if (event.finisher.echo !== undefined) {
+        const echo = event.finisher.echo;
+        const keys = ['from', 'to', 'piece', 'color', 'seat', 'captureSquare'];
+        if (!isObject(echo) || Object.keys(echo).some(key => !keys.includes(key)) ||
+          !previous?.captured || previous.endsTurn || previous.color !== move.color || previous.seat !== `${move.color}1` || move.seat !== `${move.color}2`) invalid('the allied capture echo is invalid.');
+        for (const key of keys) {
+          const expected = key === 'captureSquare' ? previous.captureSquare || previous.to : previous[key];
+          if (echo[key] !== expected) invalid('the allied capture echo does not match the previous move.');
+        }
+        result.finisher.echo = Object.fromEntries(keys.map(key => [key, echo[key]]));
+      }
+    }
   }
   return result;
 }
@@ -156,6 +185,7 @@ export function validateSavedMatch(value) {
     invalid('the starting position is invalid.');
   }
   let position = initialPosition;
+  let previousEvent = null;
   const ids = new Set();
   const events = value.events.map((event, index) => {
     if (!isObject(event)) invalid(`move ${index + 1} is invalid.`);
@@ -168,15 +198,17 @@ export function validateSavedMatch(value) {
       if (event[key] != null && event[key] !== applied.move[key]) invalid(`move ${index + 1} does not match its recorded ${key}.`);
     }
     position = applied.position;
-    return {
+    const acceptedEvent = {
       ...applied.move,
-      ...copyBattleData(event),
+      ...copyBattleData(event, applied.move, previousEvent),
       id: event.id,
       index,
       ...(event.clocksBefore ? { clocksBefore: validateClocks(event.clocksBefore, value.config.timeControl) } : {}),
       positionBefore: before,
       positionAfter: position,
     };
+    previousEvent = acceptedEvent;
+    return acceptedEvent;
   });
   for (const key of ['fen', 'team', 'slot', 'halfmove', 'turnNumber']) {
     if (value.position[key] !== position[key]) invalid(`the final ${key} does not match the move history.`);
@@ -392,7 +424,7 @@ export function exportMoveList(match) {
 function sanitizedPreferences(value) {
   if (!isObject(value)) throw new Error('Settings must be an object.');
   const preferences = {};
-  for (const key of ['sound', 'showCoordinates']) {
+  for (const key of ['sound', 'showCoordinates', 'finishers', 'boardShake']) {
     if (value[key] === undefined) continue;
     if (typeof value[key] !== 'boolean') throw new Error(`${key} must be true or false.`);
     preferences[key] = value[key];
@@ -405,6 +437,14 @@ function sanitizedPreferences(value) {
   if (value.volume !== undefined) {
     if (!Number.isFinite(value.volume) || value.volume < 0 || value.volume > 1) throw new Error('Volume must be between zero and one.');
     preferences.volume = value.volume;
+  }
+  if (value.matchDefaults !== undefined) {
+    const defaults = value.matchDefaults;
+    if (!isObject(defaults) || Object.keys(defaults).some(key => !Object.hasOwn(DEFAULT_MATCH_CONFIG, key)) ||
+      !['w', 'b'].includes(defaults.humanColor) || !DIFFICULTIES.has(defaults.teammateDifficulty) ||
+      !DIFFICULTIES.has(defaults.opponentDifficulty) || !Object.hasOwn(CONTROLS, defaults.timeControl) ||
+      typeof defaults.balancedOpening !== 'boolean') throw new Error('New-match settings are invalid.');
+    preferences.matchDefaults = { ...defaults };
   }
   return preferences;
 }
