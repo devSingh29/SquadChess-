@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PieceArt from './PieceArt.jsx';
 import BattleOverlay from './BattleOverlay.jsx';
 import { actorAccent, BATTLE_VARIANTS, battleDetails, battleSpec, hashSeed, PIECE_NAMES, squareCenter } from '../game/battles.js';
@@ -60,6 +60,11 @@ export function BattleGallery({ motion = 'full', onClose }) {
   const [event, setEvent] = useState(() => previewEvent('p', 'pawn-thrust', 'n', 'w1', false, 0));
   const [playing, setPlaying] = useState(true);
   const sequence = useRef(0);
+  const soundCleanup = useRef(null);
+  const soundEnabled = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; soundCleanup.current?.(); }; }, []);
+  useEffect(() => () => { soundCleanup.current?.(); }, [motion]);
   const accent = actorAccent(seat[0], seat, 'w');
   const destination = squareCenter(event.to);
   const showRestingPiece = !playing || motion !== 'full';
@@ -69,7 +74,11 @@ export function BattleGallery({ motion = 'full', onClose }) {
     const nextEvent = previewEvent(next.type ?? type, next.variant ?? variant, next.victim ?? victim, next.seat ?? seat, next.combo ?? combo, sequence.current);
     setEvent(nextEvent);
     setPlaying(true);
-    if (sound) unlockAudio().then(unlocked => { if (unlocked) playMoveSound(nextEvent, 0.35); });
+    soundCleanup.current?.();
+    const currentSequence = sequence.current;
+    if (soundEnabled.current) unlockAudio().then(unlocked => {
+      if (unlocked && mounted.current && soundEnabled.current && sequence.current === currentSequence) soundCleanup.current = playMoveSound(nextEvent, .35, motion);
+    });
   }
 
   return <section className="battle-gallery" aria-label="Battle atelier">
@@ -90,7 +99,7 @@ export function BattleGallery({ motion = 'full', onClose }) {
         <div className="battle-gallery-preview-description" aria-live="polite"><span>{combo ? 'Squad combination' : event.underdog ? 'Giant slayer' : 'Signature encounter'}</span><h3>{event.title}</h3><p>{DESCRIPTIONS[variant]}</p></div>
         <div className="battle-gallery-playback">
           <button type="button" className="battle-gallery-play" onClick={() => preview()}><span aria-hidden="true">↻</span> {playing ? 'Play again' : 'Replay battle'}</button>
-          <button type="button" className={`battle-gallery-sound${sound ? ' is-active' : ''}`} aria-pressed={sound} onClick={() => { if (!sound) unlockAudio(); setSound(!sound); }}>Sound {sound ? 'on' : 'off'}</button>
+          <button type="button" className={`battle-gallery-sound${sound ? ' is-active' : ''}`} aria-pressed={sound} onClick={() => { soundEnabled.current = !sound; if (!sound) unlockAudio(); else soundCleanup.current?.(); setSound(!sound); }}>Sound {sound ? 'on' : 'off'}</button>
         </div>
         {motion !== 'full' && <p className="battle-gallery-motion-note">Your {motion === 'off' ? 'motion-off' : 'reduced-motion'} preference is active. Change it in Settings to see the full encounters.</p>}
       </div>

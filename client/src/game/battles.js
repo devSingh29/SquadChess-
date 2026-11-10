@@ -131,6 +131,16 @@ export function squareCenter(square, orientation = 'white') {
     : { x: (file + 0.5) * 12.5, y: (7 - rank + 0.5) * 12.5 };
 }
 
+/** Keep enlarged characters inside the board, including their largest authored pose. */
+export function presentationUnitGeometry(centers, preferredWidth = 18, maximumScale = 1.2) {
+  const width = Math.min(preferredWidth, ...centers.map(center => Math.min(
+    2 * Math.min(center.x, 100 - center.x) / maximumScale,
+    (center.y + 6.25) / (1.2 * maximumScale),
+  )));
+  const height = width * 1.2;
+  return { width, height, topOffset: -(height - 6.25) };
+}
+
 export function specialMoveDetails(event) {
   if (!event || event.captured) return null;
   if (event.promotion) return { kind: 'promotion', title: `${PIECE_NAMES[event.promotion]} awakened`, duration: 900, square: event.to };

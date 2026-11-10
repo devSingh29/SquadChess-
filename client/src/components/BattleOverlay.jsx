@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef } from 'react';
 import PieceArt from './PieceArt.jsx';
-import { actorAccent, battleSpec, phaseTimings, PIECE_NAMES, randomFromSeed, squareCenter } from '../game/battles.js';
+import { actorAccent, battleSpec, phaseTimings, PIECE_NAMES, presentationUnitGeometry, randomFromSeed, squareCenter } from '../game/battles.js';
 import './battle.css';
 
 function AttackSignature({ variant, x, y, from }) {
@@ -104,6 +104,8 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
   const { spec, from, to, hit, start, target, trail, shards, direction } = scene;
   const victimColor = spec.color === 'w' ? 'b' : 'w';
   const victimAccent = actorAccent(victimColor, victimColor.toUpperCase() + '1', spec.humanColor || 'w');
+  const unit = presentationUnitGeometry([from, to, hit]);
+  const crownBaseY = Math.max(45, to.y * 8 - 74);
   const style = {
     '--battle-duration': `${duration}ms`,
     '--battle-motion-duration': `${timing.motion}ms`,
@@ -117,10 +119,13 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
     '--battle-hit-effect-duration': `${timing.impact + timing.settle * .65}ms`,
     '--battle-release-duration': `${duration - timing.impactAt}ms`,
     '--battle-accent': spec.accent,
-    '--battle-start-x': `${(from.x - to.x) / 18 * 100}%`,
-    '--battle-start-y': `${(from.y - to.y) / 21.6 * 100}%`,
-    '--battle-hit-x': `${(hit.x - to.x) / 18 * 100}%`,
-    '--battle-hit-y': `${(hit.y - to.y) / 21.6 * 100}%`,
+    '--battle-unit-width': `${unit.width}%`,
+    '--battle-unit-height': `${unit.height}%`,
+    '--battle-unit-top': `${unit.topOffset}%`,
+    '--battle-start-x': `${(from.x - to.x) / unit.width * 100}%`,
+    '--battle-start-y': `${(from.y - to.y) / unit.height * 100}%`,
+    '--battle-hit-x': `${(hit.x - to.x) / unit.width * 100}%`,
+    '--battle-hit-y': `${(hit.y - to.y) / unit.height * 100}%`,
     '--battle-direction': direction,
     '--battle-tilt': `${direction * 13}deg`,
     '--battle-counter-tilt': `${direction * -16}deg`,
@@ -173,7 +178,7 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
           const angle = index / 10 * Math.PI * 2;
           return <path key={index} d={`M${to.x * 8 + Math.cos(angle) * 45} ${to.y * 8 + Math.sin(angle) * 45}L${to.x * 8 + Math.cos(angle) * 104} ${to.y * 8 + Math.sin(angle) * 104}`} />;
         })}
-        <path className="battle-promotion-crown" d={`M${to.x * 8 - 34} ${to.y * 8 - 74}l-5-30 23 13 16-24 16 24 23-13-5 30Z`} />
+        <path className="battle-promotion-crown" d={`M${to.x * 8 - 34} ${crownBaseY}l-5-30 23 13 16-24 16 24 23-13-5 30Z`} />
       </g>}
     </svg>
     <div className="battle-unit battle-victim" style={{ left: `${hit.x}%`, top: `${hit.y}%`, animationName: spec.reaction.motionName }} aria-hidden="true">
@@ -183,7 +188,7 @@ export function BattleOverlay({ event, orientation = 'white', motion = 'full', o
       <PieceArt className={spec.promotion ? 'battle-attacker-original' : ''} type={spec.piece} color={spec.color} size="100%" accent={spec.accent} />
       {spec.promotion && <PieceArt className="battle-attacker-promoted" type={spec.promotion} color={spec.color} size="100%" accent={spec.accent} />}
     </div>
-    <div className="battle-caption" aria-hidden="true">
+    <div className="battle-caption" style={hit.y < 25 ? { top: 'auto', bottom: '3%' } : undefined} aria-hidden="true">
       <span className="battle-caption-kicker">{spec.combo ? 'Squad combination' : spec.underdog ? 'Giant slayer' : `${PIECE_NAMES[spec.piece]} takes ${PIECE_NAMES[spec.captured]}`}</span>
       <strong>{spec.title}</strong>
     </div>

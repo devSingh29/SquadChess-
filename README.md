@@ -57,6 +57,10 @@ Matches save automatically in this browser. Continue restores an unfinished posi
 
 Browser storage belongs to the browser and local address you use. Export any match you want to keep independently of that storage. If storage is unavailable or full, the game reports it and allows in-memory play and file export.
 
+## Contributing
+
+Read [the architecture guide](ARCHITECTURE.md) for shared rules, match contracts, search and recovery. Read [the battle guide](CONTRIBUTING_BATTLES.md) to add capture or movement sequences. Current interface screenshots are in [docs/screenshots](docs/screenshots).
+
 ## Project layout
 
 - `client/`: the playable React application, shared game rules, background computer search, local storage, and battle presentation.

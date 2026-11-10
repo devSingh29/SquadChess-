@@ -27,7 +27,10 @@ function tone(frequency, endFrequency, start, duration, volume, type = 'sine') {
   oscillator.connect(envelope).connect(context.destination);
   oscillator.start(start);
   oscillator.stop(start + duration + 0.02);
-  oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
+  let disconnected = false;
+  const disconnect = () => { if (disconnected) return; disconnected = true; oscillator.disconnect(); envelope.disconnect(); };
+  oscillator.onended = disconnect;
+  return () => { try { oscillator.stop(); } catch { /* The source may already have ended. */ } disconnect(); };
 }
 
 function rush(start, duration, volume, seed) {
@@ -48,34 +51,47 @@ function rush(start, duration, volume, seed) {
   envelope.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   source.connect(filter).connect(envelope).connect(context.destination);
   source.start(start);
-  source.onended = () => { source.disconnect(); filter.disconnect(); envelope.disconnect(); };
+  let disconnected = false;
+  const disconnect = () => { if (disconnected) return; disconnected = true; source.disconnect(); filter.disconnect(); envelope.disconnect(); };
+  source.onended = disconnect;
+  return () => { try { source.stop(); } catch { /* The source may already have ended. */ } disconnect(); };
 }
 
 /** Does not unlock audio itself: call unlockAudio from a player gesture. */
-export function playMoveSound(event, volume = 0.5) {
+export function playMoveSound(event, volume = 0.5, motion = 'full') {
   if (!context || context.state !== 'running') return;
   const gain = Math.max(0, Math.min(1, Number(volume) || 0));
   if (!gain) return;
-  const start = context.currentTime + 0.008;
+  const sources = [];
+  const note = (...args) => sources.push(tone(...args));
+  const noise = (...args) => sources.push(rush(...args));
+  const start = context.currentTime + (motion === 'off' ? 0 : .008);
+  if (motion === 'off') {
+    note(event?.captured ? 210 : 320, event?.captured ? 90 : 180, start, .055, gain * .1, 'triangle');
+    if (event?.promotion) note(880, 660, start, .04, gain * .035);
+    return () => sources.splice(0).forEach(cancel => cancel());
+  }
   if (!event?.captured) {
-    tone(320, 180, start, 0.075, gain * 0.11, 'triangle');
-    tone(780, 500, start + 0.015, 0.055, gain * 0.025);
+    note(320, 180, start, 0.075, gain * 0.11, 'triangle');
+    note(780, 500, start + 0.015, 0.055, gain * 0.025);
   } else {
     const seed = event.seed ?? 1;
     const random = randomFromSeed(seed);
     const battle = battleSpec(event);
-    const impactDelay = battle ? phaseTimings(battle.choreography, battle.duration).impactAt / 1000 : .4;
+    const impactDelay = motion === 'off' ? 0 : motion === 'reduced' ? .045 : battle ? phaseTimings(battle.choreography, battle.duration).impactAt / 1000 : .4;
     const impact = start + Math.min(0.65, impactDelay);
     const magical = ['b', 'q'].includes(event.piece);
-    rush(start + 0.06, Math.max(0.12, impact - start), gain * 0.075, seed);
-    tone(magical ? 360 : 145, magical ? 680 : 48, impact, 0.25, gain * 0.14, magical ? 'sine' : 'triangle');
-    tone(940 + random() * 400, 310, impact + 0.015, 0.19, gain * 0.035, 'triangle');
+    if (motion === 'full') noise(start + 0.04, Math.max(0.12, impact - start - 0.04), gain * 0.075, seed);
+    note(magical ? 360 : 145, magical ? 680 : 48, impact, motion === 'full' ? .25 : .11, gain * 0.14, magical ? 'sine' : 'triangle');
+    note(940 + random() * 400, 310, impact + 0.015, motion === 'full' ? .19 : .09, gain * 0.035, 'triangle');
     if (magical || event.combo || event.underdog) {
       [1, 1.25, 1.5].forEach((ratio, index) =>
-        tone(440 * ratio, 440 * ratio, impact + index * 0.045, 0.3, gain * 0.035));
+        note(440 * ratio, 440 * ratio, impact + index * (motion === 'full' ? .045 : .015), motion === 'full' ? .3 : .09, gain * 0.035));
     }
   }
   if (event?.promotion) {
-    [523, 659, 784].forEach((frequency, index) => tone(frequency, frequency, start + 0.1 + index * 0.07, 0.25, gain * 0.045));
+    const promotionAt = motion === 'off' ? 0 : motion === 'reduced' ? .04 : (event.duration || (event.captured ? 1250 : 900)) * .00066;
+    [523, 659, 784].forEach((frequency, index) => note(frequency, frequency, start + promotionAt + index * .04, .16, gain * 0.045));
   }
+  return () => sources.splice(0).forEach(cancel => cancel());
 }

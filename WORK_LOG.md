@@ -1,48 +1,43 @@
 # SquadChess implementation checkpoint
 
-Updated: 2026-11-10
+Updated: 2026-11-10. The approved local-game scope is complete.
 
-## Scope and decisions
+## Delivered
 
-Complete the local React SquadChess game. Human and computer teammate share two consecutive moves, then two opponents do the same. Check ends a team turn. Keep the original server and Python sources available, but normal play runs entirely in the browser.
+- React + chess.js + browser-worker foundation; no external AI/server needed for normal play.
+- Shared rules for two allied moves, check ending a turn, special moves, draw boundaries, both playing colors, and optional balanced opening.
+- Exact teammate combination preview and execution, three difficulty budgets, cooperative hints and explanations, stale-search protection and retry recovery.
+- Optional team clocks, pause/resume, hidden-tab pause, undo, resignation, rematch, validated browser saves, portable import/export, match history and faithful replay.
+- Familiar Chess.com-like Play, Match History, How to Play and Settings layout; green/cream default board, adjustable board colors and coordinates; keyboard, mouse and touch controls.
+- Original armed humanoid artwork with visible articulated arms/legs and recognizable chess-role silhouettes.
+- Twelve ordinary travel variations; twenty-four capture attacks with target-specific reactions, actor accents, combinations, capture-promotion and saved variation.
+- Castling moves both pieces; promotion combines travel and transformation. Full/reduced/off motion, skip and independently controlled generated sound.
+- Separate declarative choreography, documented shared contracts and contribution instructions. Original server/Python/nested-repository source preserved.
 
-Preserve the illustrated humanoid pieces, weapons, visible arms and legs. Use familiar Chess.com-like navigation, setup, settings, system typography and green/cream board. Keep SquadChess branding. All normal moves have character-specific movement; captures use the saved, varied 24-attack registry.
+## Final validation
 
-Default full two-move White opening remains. Optional Balanced opening limits only White's first turn to one move. Rules, search, planner and restoration share this setting.
+- `npm test`: **93 passed**, 0 failed.
+- `npm run test:e2e`: **35 passed**, 0 failed; no browser errors.
+- `npm run lint`: passed.
+- `npm run build`: passed; worker packaged separately.
+- `git diff --check`: passed.
+- Independent simulations: **28 finished games, 5,539 moves**, both opening modes and both colors, with restored/replayed positions matching throughout. Four simulations exercised the actual controller and save validation.
+- Visual inspection of desktop and 360px phone screens; screenshots in `docs/screenshots/`.
+- Final review fixed malformed imported special-move rights, impossible second-move starts, duplicate effect identities, clipped artwork, replay continuing after navigation, older-save animation timing, and sound cancellation.
 
-## Implemented
+## Run
 
-- Shared variant rules with focused edge-case tests and dynamically calculated turn capacity.
-- Browser worker search with allied objectives across both moves, three difficulty budgets, cooperative hints and exact confirmed follow-up.
-- Match controller, stale-search protection, clocks, pause, undo, restore, import/export, history and replay.
-- Illustrated pieces, 24 capture attacks, victim reactions, saved variation and sound; declarative movement and battle registries.
-- Familiar dark/green UI, setup page, responsive board, normalized numbered preview arrows, keyboard/touch/drag controls.
-- Backward-compatible saves for balanced opening; documented one-command local launch.
+`npm run dev` serves the game at http://localhost:5173. After a fresh checkout, run `npm run setup` once. The local development server was left running for review.
 
-## Current finishing work
+## Saved checkpoints
 
-1. Ordinary movement is connected to gameplay and replay; castling moves both pieces, quiet promotion combines travel and transformation.
-2. Familiar Play / Match History / How to Play / Settings navigation and sectioned settings are implemented. Board colors and coordinates are configurable.
-3. Run final automated checks and 28 browser scenarios, inspect desktop/mobile appearance and repair any failures.
-4. Update screenshots and contributor/run instructions, commit coherent checkpoints.
+1. `701859b`: base playable rules, planner, saves and battles.
+2. `3cd0035`: familiar Play/Settings and animated travel.
+3. `2a783b1`: recovery/replay improvements and shared-contract documentation.
+4. Final presentation/audio verification, browser coverage, screenshots and completion record are committed after this update.
 
-## Ownership
+## Continuation
 
-- Root: App, controller, layout, integration, commits and final checks.
-- game_rules_review: shared rules/search and tests; independent final correctness review.
-- save_system: storage, browser test suite, run documentation.
-- experience_review: piece artwork, movement/capture/special effects and animation registry.
+There are no known outstanding blockers in the authorized local version. Human multiplayer, accounts, rankings and public hosting remain outside the agreed scope. See `ARCHITECTURE.md`, `CONTRIBUTING_BATTLES.md` and `README.md` before future changes.
 
-## Run and verification
-
-`npm run dev` serves the game at http://localhost:5173. `npm test`, `npm run lint`, `npm run build` run local checks. Browser tests are in `client/tests/game.spec.js` and require Playwright Chromium and a running local server.
-
-The code can be checkpointed without resetting the conversation. There is no reliable tool to detect a 10% usage threshold or request a usage reset. Continue from this file and the concrete source/tests after context compaction.
-
-## Verification checkpoint
-
-First full integrated run passed 88 tests, lint and the release build. Browser suite is running with updated navigation, all six ordinary movements, all 24 capture attacks and preference recovery. Independent review found malformed imported castling/en-passant rights accepted by chess.js; additional validation is being tested.
-
-Second checkpoint: `3cd0035` adds familiar navigation/settings and character travel. Final correctness run passes 91 automated tests, lint and build. Browser suite passes all 30 scenarios after fixing duplicate overlay keys. Complete-game simulations: 28 finished games, 5,539 moves, both opening modes and both player colors, with restored/replayed positions agreeing.
-
-Final visual review fixed a drag-wrapper sizing issue that clipped feet. Replay now waits for each effect's actual completion and pauses when leaving the replay or opening settings. Final edge-artwork and castling/promotion browser checks are in progress.
+There is no available tool to detect a 10% usage threshold reliably or trigger a usage reset. This checkpoint and Git history preserve progress if conversation context resets.

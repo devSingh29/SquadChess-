@@ -18,10 +18,10 @@
 }
 .battle-unit {
   position: absolute;
-  width: 18%;
-  height: 21.6%;
-  margin-left: -9%;
-  margin-top: -15%;
+  width: var(--battle-unit-width, 18%);
+  height: var(--battle-unit-height, 21.6%);
+  margin-left: calc(var(--battle-unit-width, 18%) * -.5);
+  margin-top: var(--battle-unit-top, -15%);
   transform-origin: 50% 85%;
   filter: drop-shadow(0 6px 3px #0008);
   will-change: transform, opacity;

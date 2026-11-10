@@ -94,7 +94,11 @@ function App() {
     const identity = `${screen}:${soundEvent.id}`;
     if (identity !== sounded.current) {
       sounded.current = identity;
-      if (preferences.sound) return playMoveSound(soundEvent, preferences.volume, preferences.motion);
+      if (preferences.sound) {
+        const cancelSound = playMoveSound(soundEvent, preferences.volume, preferences.motion);
+        // With motion off, the board settles immediately; let its tiny sound cue finish.
+        return preferences.motion === 'off' ? undefined : cancelSound;
+      }
     }
   }, [soundEvent, screen, preferences.sound, preferences.volume, preferences.motion]);
   useEffect(() => {

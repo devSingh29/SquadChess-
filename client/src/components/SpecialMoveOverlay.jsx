@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import PieceArt from './PieceArt.jsx';
-import { actorAccent, specialMoveDetails, squareCenter } from '../game/battles.js';
+import { actorAccent, presentationUnitGeometry, specialMoveDetails, squareCenter } from '../game/battles.js';
 import './special-move.css';
 
 export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'full', onComplete, withMovement = Boolean(event?.movementVariant) }) {
@@ -24,6 +24,7 @@ export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'ful
   if (!target || !from || !to) return null;
   const x = target.x * 8;
   const y = target.y * 8;
+  const unit = presentationUnitGeometry([target], 17, 1.12);
   const accent = spec.kind === 'check' ? '#ed8f83' : actorAccent(event.color, event.seat, event.humanColor || 'w');
   const rank = event.from[1];
   const rookFrom = squareCenter(`${event.castle === 'kingside' ? 'h' : 'a'}${rank}`, orientation);
@@ -52,8 +53,8 @@ export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'ful
         return <path key={index} d={`M${x + Math.cos(angle) * 43} ${y + Math.sin(angle) * 43}L${x + Math.cos(angle) * 96} ${y + Math.sin(angle) * 96}`} />;
       })}</g>}
     </svg>
-    {spec.kind === 'promotion' && <div className="special-move-character" style={{ left: `${target.x}%`, top: `${target.y}%` }} aria-hidden="true">{!withMovement && <PieceArt className="special-move-pawn" type="p" color={event.color} size="100%" accent={accent} />}<PieceArt className="special-move-promoted" type={event.promotion} color={event.color} size="100%" accent={accent} /></div>}
-    <div className="special-move-caption" aria-hidden="true"><span>{spec.kind === 'check' ? 'Check' : spec.kind === 'castle' ? 'King & bastion' : 'Promotion'}</span><strong>{spec.title}</strong></div>
+    {spec.kind === 'promotion' && <div className="special-move-character" style={{ left: `${target.x}%`, top: `${target.y}%`, width: `${unit.width}%`, height: `${unit.height}%`, marginLeft: `${-unit.width / 2}%`, marginTop: `${unit.topOffset}%` }} aria-hidden="true">{!withMovement && <PieceArt className="special-move-pawn" type="p" color={event.color} size="100%" accent={accent} />}<PieceArt className="special-move-promoted" type={event.promotion} color={event.color} size="100%" accent={accent} /></div>}
+    <div className="special-move-caption" style={target.y < 25 ? { top: 'auto', bottom: '3%' } : undefined} aria-hidden="true"><span>{spec.kind === 'check' ? 'Check' : spec.kind === 'castle' ? 'King & bastion' : 'Promotion'}</span><strong>{spec.title}</strong></div>
   </div>;
 }
 

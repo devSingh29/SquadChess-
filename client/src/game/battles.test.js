@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { actorAccent, BATTLE_REGISTRY, BATTLE_VARIANTS, MOVEMENT_REGISTRY, REACTION_REGISTRY, battleDetails, battleSpec, castlingRookSquares, hashSeed, movementDetails, movementSpec, phaseTimings, randomFromSeed, specialMoveDetails, squareCenter } from './battles.js';
+import { actorAccent, BATTLE_REGISTRY, BATTLE_VARIANTS, MOVEMENT_REGISTRY, REACTION_REGISTRY, battleDetails, battleSpec, castlingRookSquares, hashSeed, movementDetails, movementSpec, phaseTimings, presentationUnitGeometry, randomFromSeed, specialMoveDetails, squareCenter } from './battles.js';
 
 const capture = { id: 'move-1', from: 'e4', to: 'd5', piece: 'p', color: 'w', seat: 'W1', captured: 'p' };
 
@@ -193,4 +193,19 @@ test('castling identifies the companion rook in either direction and on either t
   const event = movementSpec({ piece: 'k', color: 'b', from: 'e8', to: 'c8', castle: 'queenside' });
   assert.deepEqual(event.companion, { from: 'a8', to: 'd8' });
   assert.equal(castlingRookSquares({ piece: 'r', from: 'h1', to: 'f1' }), null);
+});
+
+test('enlarged capture and promotion figures remain within corner and back-rank bounds', () => {
+  for (const orientation of ['white', 'black']) {
+    for (const square of ['a8', 'd8', 'h8', 'a1', 'h1', 'd4']) {
+      const center = squareCenter(square, orientation);
+      const unit = presentationUnitGeometry([center]);
+      assert.ok(center.x - unit.width * 1.2 / 2 >= -.00001);
+      assert.ok(center.x + unit.width * 1.2 / 2 <= 100.00001);
+      assert.ok(center.y + 6.25 - unit.height * 1.2 >= -.00001);
+      assert.ok(unit.width > 0 && unit.width <= 18);
+    }
+  }
+  const central = presentationUnitGeometry([squareCenter('d4'), squareCenter('e5')]);
+  assert.equal(central.width, 18);
 });
