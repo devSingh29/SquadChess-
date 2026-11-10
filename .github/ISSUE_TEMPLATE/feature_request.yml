@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an improvement to play, presentation, or accessibility.
+title: "[Idea]: "
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What would this improve for players?
+      description: Describe the situation or difficulty, with a concrete example.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain how it should feel or work. Visual references are welcome; link their source.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Scope and alternatives
+      description: Consider the local-game scope, phone controls, reduced motion, saved games, and alternative approaches.
+  - type: markdown
+    attributes:
+      value: "Definitions: reduced motion = a setting that replaces elaborate movement with gentler effects."

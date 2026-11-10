@@ -1,0 +1,40 @@
+{
+  "name": "squadchess",
+  "version": "1.1.0",
+  "private": true,
+  "engines": {
+    "node": "24.x",
+    "npm": "11.x"
+  },
+  "packageManager": "npm@11.21.2",
+  "scripts": {
+    "setup": "npm ci && npm ci --prefix client",
+    "dev": "npm run dev --prefix client",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "dev:legacy": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "build": "npm run build --prefix client",
+    "preview": "npm run preview --prefix client",
+    "lint": "npm run lint --prefix client",
+    "test": "npm run test --prefix client",
+    "test:e2e": "npm run test:e2e --prefix client",
+    "test:packaged": "npm run build && npm run test:packaged --prefix client",
+    "test:browsers": "npm run test:browsers --prefix client",
+    "check": "npm run lint && npm test && npm run test:e2e && npm run test:packaged"
+  },
+  "keywords": [],
+  "author": "Dev Singh and contributors",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devSingh29/SquadChess-.git"
+  },
+  "bugs": {
+    "url": "https://github.com/devSingh29/SquadChess-/issues"
+  },
+  "homepage": "https://github.com/devSingh29/SquadChess-#readme",
+  "description": "A local two-move team chess game with cooperative computer play and animated fantasy battles.",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "task": "Next-release finisher integration",
+  "status": "passed",
+  "scenarios": [
+    {
+      "humanColor": "w",
+      "balancedOpening": false,
+      "moves": 22,
+      "result": {
+        "winner": "w",
+        "reason": "checkmate"
+      },
+      "captures": 10,
+      "finishers": 2,
+      "firstMoveChecks": 0,
+      "restores": 2
+    },
+    {
+      "humanColor": "w",
+      "balancedOpening": true,
+      "moves": 108,
+      "result": {
+        "winner": null,
+        "reason": "repetition"
+      },
+      "captures": 28,
+      "finishers": 4,
+      "firstMoveChecks": 13,
+      "restores": 7
+    },
+    {
+      "humanColor": "b",
+      "balancedOpening": false,
+      "moves": 77,
+      "result": {
+        "winner": null,
+        "reason": "bare-kings"
+      },
+      "captures": 30,
+      "finishers": 5,
+      "firstMoveChecks": 3,
+      "restores": 7
+    },
+    {
+      "humanColor": "b",
+      "balancedOpening": true,
+      "moves": 68,
+      "result": {
+        "winner": null,
+        "reason": "bare-kings"
+      },
+      "captures": 30,
+      "finishers": 5,
+      "firstMoveChecks": 4,
+      "restores": 4
+    }
+  ],
+  "totals": {
+    "games": 4,
+    "moves": 275,
+    "captures": 98,
+    "finishers": 16,
+    "firstMoveChecks": 20,
+    "restores": 20,
+    "verifiedPromises": 126,
+    "searches": 208,
+    "stressBudgetMs": 12,
+    "maxSearchMs": 16,
+    "validatedSaveSnapshots": 736
+  },
+  "defaultOpeningSearches": [
+    {
+      "difficulty": "easy",
+      "elapsedMs": 196,
+      "depth": 2,
+      "nodes": 932
+    },
+    {
+      "difficulty": "medium",
+      "elapsedMs": 701,
+      "depth": 2,
+      "nodes": 3272
+    },
+    {
+      "difficulty": "hard",
+      "elapsedMs": 1801,
+      "depth": 2,
+      "nodes": 6990
+    }
+  ],
+  "verified": [
+    "Each accepted move reproduced its recorded final position under the shared rules.",
+    "Every capture used presentation version 2 and its saved victim reaction.",
+    "Each finisher satisfied approved capture eligibility and an index gap of at least eight from the preceding finisher.",
+    "Confirmed allied double captures deferred the first finisher.",
+    "Disabled finishers resolved to the recorded ordinary capture duration.",
+    "Twenty interrupted pairs survived portable export, reconstruction, and controller replacement with the promised teammate move unchanged.",
+    "All 126 observed promises executed exactly, including promotions when supplied.",
+    "All 736 persisted snapshots validated without errors or recovery notices.",
+    "Final portable exports reconstructed the exact terminal position.",
+    "Normal Easy, Medium, and Hard opening searches supplied legal complete pairs without exceeding their budgets by more than 150 ms."
+  ],
+  "limits": "Full games used a deliberately short 12 ms search budget to exercise control flow and fallback completion; the separate opening measurements used the normal default difficulty budgets. Results verify the observed runs, not statistical playing strength."
+}
