@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a problem in the local SquadChess game.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Include a portable SquadChess save when it helps reproduce the problem. Review attachments before posting them publicly.
+        Definitions: portable save = a game file exported with “Save a portable copy”.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the expected result and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Start a match as White…"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Game and device details
+      description: Game version, browser, operating system, screen size, and whether you used the local development game or a release.
+    validations:
+      required: true
+  - type: textarea
+    id: settings
+    attributes:
+      label: Relevant match settings
+      description: Playing color, opening rule, difficulty, clock, animation, and sound settings.
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Save file, screenshot, or recording
+      description: Add a portable save or visual example if available. Browser errors are useful too; avoid including credentials or unrelated personal information.

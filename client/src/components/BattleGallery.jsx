@@ -109,7 +109,7 @@ export function BattleGallery({ motion = 'full', prefs, onClose }) {
     soundCleanup.current?.();
     const currentSequence = sequence.current;
     if (soundEnabled.current) unlockAudio().then(unlocked => {
-      if (unlocked && mounted.current && soundEnabled.current && sequence.current === currentSequence) soundCleanup.current = playMoveSound(nextEvent, .35, motion, { ...prefs, finishers: (next.mode ?? mode) === 'finishers' });
+      if (unlocked && mounted.current && soundEnabled.current && sequence.current === currentSequence) soundCleanup.current = playMoveSound(nextEvent, prefs?.volume ?? .35, motion, { ...prefs, finishers: (next.mode ?? mode) === 'finishers' });
     });
   }
 

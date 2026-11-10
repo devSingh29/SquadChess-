@@ -2,16 +2,20 @@
 
 **Two moves. One plan.** You and your computer teammate share an army and take two consecutive moves before the opposing computer team responds. Preview your combination, commit to it, and watch illustrated fantasy pieces battle for the board.
 
+![SquadChess two-move planner on a laptop](docs/screenshots/v1.1.0/game-desktop.png)
+
+[Release notes](RELEASE_NOTES.md) · [Contribute](CONTRIBUTING.md) · [Report a bug](https://github.com/devSingh29/SquadChess-/issues/new/choose)
+
 ## Run locally
 
-Install Node.js 22 or newer, then run these commands from this folder:
+Use Node.js **24.22.2** and npm **11.21.2**, then run these commands from this folder. With nvm already installed, `nvm install` and `nvm use` select the recorded Node version.
 
 ```sh
 npm run setup
 npm run dev
 ```
 
-Open the local address printed by the development tool. After the first installation, `npm run dev` is the only launch command needed. Normal play runs in the browser: no Python process, game server, external AI provider, account, or API key is required. Use the same local address when returning so the browser can find your saved games.
+Setup installs the exact versions recorded in the root and client lockfiles using `npm ci`. Open the local address printed by the development tool. After the first installation, `npm run dev` is the only launch command needed. Normal play runs in the browser: no Python process, game server, external AI provider, account, or API key is required. Use the same local address when returning so the browser can find your saved games.
 
 Other commands:
 
@@ -20,9 +24,14 @@ npm test          # Run rules, computer-search, save, and battle tests
 npm run lint     # Check source code
 npm run build    # Create the release in client/dist
 npm run preview  # Serve the built release locally
+npm run test:e2e # Run browser checks; starts its own server when needed
+npm run test:packaged # Build and test the actual release files
+npm run check    # Run all source, game, browser, and packaged checks
 ```
 
-For browser checks, leave the game running at `http://localhost:5173` in another terminal. Install the test browser once with `npm exec --prefix client -- playwright install chromium`, then run `npm run test:e2e`. The browser suite covers ordinary play, saved-game recovery, both opening modes, touch and keyboard controls, and the capture gallery.
+Install the test browser once with `npm run test:browsers`. The browser suite starts the game at `http://localhost:5173`, or reuses an existing local server there without stopping it. It covers ordinary play, saved-game recovery, both opening modes, touch and keyboard controls, and the capture gallery.
+
+The packaged checks build `client/dist`, start a separate server on port 4173, and play the finished bundle through its visible controls. They verify the packaged computer worker, promised follow-up, and saved-game restoration without importing development source. Keep port 4173 free for this check. Both browser suites preserve failure screenshots and traces in `client/test-results/`, with readable reports in `client/playwright-report/`.
 
 ## The rules
 
@@ -51,6 +60,8 @@ Every ordinary move has character-specific travel: soldiers step or march, rider
 
 Captures use twenty-four signature attacks, four per role, with reactions chosen for the defeated piece. The capturing piece, defeated piece, acting player, and saved variation determine the battle. A brief anticipation leads into the strike, contact, defeat, and settling movement. Full, reduced, and disabled motion settings are available, along with sound controls. Battle effects never change the rules.
 
+Twelve rare environmental finishers add longer, dramatic captures lasting two to three seconds. Defeated pieces have fifteen reaction variations across the five capturable roles. Finishers and reactions are recorded for replay, with sound reproduced from the saved battle; finishers and board shake can be disabled separately. The Settings categories organize board appearance, animations, and sound, with previews. The match panel separates planning from move history, and phone confirmation controls remain close at hand.
+
 Open **Explore capture battles** from the home screen, or **Explore the capture battles** in Settings, to visit the battle gallery. Try all six attackers, all twenty-four encounters, five target types, four player accents, and the two-capture team celebration without changing a real game.
 
 Matches save automatically in this browser. Continue restores an unfinished position and any already-confirmed teammate move. History preserves completed games and lets you replay their original battle choices. Export a SquadChess save file for backup or transfer; import checks the entire move history before accepting it and creates a new local copy. A readable move-list export labels all four players. These are custom SquadChess records, not ordinary alternating-turn chess records.
@@ -59,14 +70,18 @@ Browser storage belongs to the browser and local address you use. Export any mat
 
 ## Contributing
 
-Read [the architecture guide](ARCHITECTURE.md) for shared rules, match contracts, search and recovery. Read [the battle guide](CONTRIBUTING_BATTLES.md) to add capture or movement sequences. Current interface screenshots are in [docs/screenshots](docs/screenshots).
+Start with [the contributor guide](CONTRIBUTING.md) for setup, changes, checks, and releases. Read [the architecture guide](ARCHITECTURE.md) for shared rules, match contracts, search and recovery, and [the battle guide](CONTRIBUTING_BATTLES.md) to add capture or movement sequences. Current interface screenshots are in [docs/screenshots](docs/screenshots).
+
+GitHub Actions runs source checks, game tests, browser play, and a packaged-game check for proposed changes and updates to `main`. Successful checks provide a browser bundle and source snapshot as downloadable review artifacts. They do not publish a website or release automatically. Weekly grouped update suggestions cover the active npm packages and GitHub Actions.
+
+SquadChess code is available under the [ISC license](LICENSE), copyright 2026 Dev Singh and contributors. Bundled fonts retain their separate license notices in `client/public/fonts/`. Original artwork and presentation contribution guidance are documented in the battle guide.
 
 ## Project layout
 
 - `client/`: the playable React application, shared game rules, background computer search, local storage, and battle presentation.
 - `server/`, `ai/`, and `shared/`: preserved source from the original online scaffold. They are not used by the current local game. The legacy server can still be started separately with `npm run dev:server` after installing its dependencies.
-- `SquadChess-/`: the original nested repository; the running local application is in this project folder.
+- Some development workspaces also retain `SquadChess-/`, the original README-only nested repository. It is excluded from the current repository; fresh clones contain the playable application and the preserved source folders above.
 
 This version is for solo play with computer teammates and opponents. Human multiplayer, accounts, public hosting, and online rankings are not part of this release.
 
-**Definitions:** Node.js = the program that runs the local development tools; React = the screen-building library; API key = a credential for an external service; terminal = the window where launch commands run; browser suite = automated tests that interact with the visible game; check = a direct threat to the king; checkmate = check with no legal escape; stalemate = no legal move without check; castling = a combined king-and-rook move; promotion = replacing a pawn at the far edge; en passant = a special immediate pawn capture; computer search = examining future moves to choose a move; scaffold = an early starting structure.
+**Definitions:** Node.js = the program that runs the local development tools; npm = its package installer; nvm = a tool for selecting Node versions; lockfile = a record of exact package versions; React = the screen-building library; API key = a credential for an external service; browser suite = automated tests that interact with the visible game; worker = a background browser task; bundle = built game files; artifact = a downloadable output from checks; trace = a recorded test run; repository = the project and its recorded history; finisher = a rare, longer capture sequence; check = a direct threat to the king; checkmate = check with no legal escape; stalemate = no legal move without check; castling = a combined king-and-rook move; promotion = replacing a pawn at the far edge; en passant = a special immediate pawn capture; computer search = examining future moves to choose a move; scaffold = an early starting structure.

@@ -1,0 +1,72 @@
+name: Game checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: game-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Node 24 · rules, browser, and release
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+      - name: Use the recorded npm version
+        run: npm install --global npm@11.21.2
+      - name: Install recorded dependencies
+        run: npm run setup
+      - name: Install the test browser
+        working-directory: client
+        run: npx playwright install --with-deps chromium
+      - name: Check source quality
+        run: npm run lint
+      - name: Check rules, computer play, saving, and presentation
+        run: npm test
+      - name: Exercise the visible development game
+        run: npm run test:e2e
+      - name: Build the release
+        run: npm run build
+      - name: Exercise the packaged game and computer worker
+        run: npm run test:packaged --prefix client
+      - name: Retain browser reports and failure details
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: browser-checks-${{ github.sha }}
+          path: |
+            client/playwright-report/
+            client/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Prepare reviewed release files
+        run: |
+          cp LICENSE client/dist/LICENSE
+          tar -czf "$RUNNER_TEMP/squadchess-web.tar.gz" -C client/dist .
+          git archive --format=tar.gz --prefix=squadchess-source/ --output="$RUNNER_TEMP/squadchess-source.tar.gz" HEAD
+      - name: Retain the verified browser bundle and source
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: squadchess-release-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/squadchess-web.tar.gz
+            ${{ runner.temp }}/squadchess-source.tar.gz
+          if-no-files-found: error
+          retention-days: 30

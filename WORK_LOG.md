@@ -69,3 +69,13 @@ All thirteen new battle browser scenarios pass, covering all finishes/reactions,
 Extracted HomeScreen, MatchPanel, shared labels and icons from the large application component. Added prominent Continue, remembered setup, Plan/Moves tabs, compact numbered combinations, explicit skipped-follow-up messages, Return to Match, replay-accurate captures/highlights, categorized settings and previews. New proposals and hints reveal Plan before confirmation. A 1366×768 laptop fits the board and essential controls; phone setup comes first and confirmation stays above navigation without covering the board.
 
 All original 35 browser scenarios and five new interface scenarios pass. Desktop and phone images are recorded in docs/screenshots/v1.1.0/. Independent review found the initially hidden plan when selecting from Moves; this is fixed and covered by a regression scenario.
+
+### Milestone 4 — public project and release preparation
+
+Added ISC licensing credited to Dev Singh and contributors, contributor guides, issue/change-request templates, release notes, weekly grouped dependency updates, Node 24.22.2/npm 11.21.2 pins and reproducible installation. Browser tests manage their own servers; a separate packaged-game suite exercises the built worker without development imports. GitHub Actions retains reports, failure traces and verified browser/source archives.
+
+Clean installation passed. Full local verification passed: 107 game tests, all 53 game/interface/battle browser scenarios, both packaged-game scenarios, source checks and release build. Independent review then caught a pre-existing gallery volume override; it is corrected and a new actual-audio browser scenario passes (54 browser scenarios total). The game still runs at http://localhost:5173 for play.
+
+Independent complete-game validation covered four games across both colors/opening rules: 275 moves, 98 captures, 16 finishers, 20 interrupted-pair reloads, 126 exact promised moves and 736 validated saves. Details and limits are in docs/verification-v1.1.0.json.
+
+Release publication proceeds through release/battlefield-finishers, a reviewed public change request, successful hosted checks, a merge preserving all history, and v1.1.0 downloadable packages. No website hosting is included. Public source/checks: https://github.com/devSingh29/SquadChess- ; release: https://github.com/devSingh29/SquadChess-/releases/tag/v1.1.0 .
