@@ -1,9 +1,9 @@
 import { createPosition, applyMove, RULESET } from './rules.js';
-import { battleDetails, specialMoveDetails, hashSeed } from './battles.js';
+import { battleDetails, movementDetails, specialMoveDetails, hashSeed } from './battles.js';
 import { saveMatch } from './storage.js';
 
 export const DEFAULT_CONFIG = { humanColor: 'w', teammateDifficulty: 'medium', opponentDifficulty: 'easy', timeControl: 'untimed', balancedOpening: false };
-export const DEFAULT_PREFERENCES = { motion: 'full', sound: true, volume: 0.35 };
+export const DEFAULT_PREFERENCES = { motion: 'full', sound: true, volume: 0.35, boardTheme: 'green', showCoordinates: true };
 const other = color => color === 'w' ? 'b' : 'w';
 const copyMove = move => ({ from: move.from, to: move.to, ...(move.promotion ? { promotion: move.promotion } : {}) });
 const clockConfig = control => control === '5+3' ? { w: 300000, b: 300000, increment: 3000, enabled: true } : control === '10+5' ? { w: 600000, b: 600000, increment: 5000, enabled: true } : { w: 0, b: 0, increment: 0, enabled: false };
@@ -182,10 +182,15 @@ export class GameController {
     const match = this.state.match; if (!match || match.position.result) return;
     const { position, move: details } = applyMove(match.position, move);
     const special = details.captured ? null : specialMoveDetails(details);
+    const seed = hashSeed(`${match.id}:${match.events.length}:${details.from}:${details.to}`);
+    const animation = details.captured
+      ? battleDetails(details, match.events, match.config.humanColor, seed)
+      : movementDetails(details, match.events, match.config.humanColor, seed);
     const event = {
       ...details, id: `${match.id}:${match.events.length + 1}:${crypto.randomUUID().slice(0, 8)}`,
       index: match.events.length, positionAfter: position, clocksBefore: { ...match.clocks }, humanColor: match.config.humanColor,
-      ...(details.captured ? battleDetails(details, match.events, match.config.humanColor, hashSeed(`${match.id}:${match.events.length}:${details.from}:${details.to}`)) : special ? { duration: special.duration, title: special.title } : {}),
+      ...animation,
+      ...(special ? { duration: Math.max(special.duration, animation?.duration || 0), title: special.title } : {}),
     };
     const clocks = { ...match.clocks };
     if (details.endsTurn && clocks.enabled) clocks[match.position.team] += clocks.increment;

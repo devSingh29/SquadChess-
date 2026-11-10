@@ -3,13 +3,14 @@ import PieceArt from './PieceArt.jsx';
 import { actorAccent, specialMoveDetails, squareCenter } from '../game/battles.js';
 import './special-move.css';
 
-export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'full', onComplete }) {
+export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'full', onComplete, withMovement = Boolean(event?.movementVariant) }) {
   const spec = useMemo(() => specialMoveDetails(event), [event]);
   const completed = useRef(onComplete);
   useEffect(() => { completed.current = onComplete; }, [onComplete]);
   const eventId = event?.id;
   const hasEvent = Boolean(event);
-  const duration = motion === 'off' ? 0 : motion === 'reduced' ? 200 : spec?.duration || 0;
+  const fullDuration = spec ? Math.max(spec.duration, Math.min(1500, Number(event?.duration) || 0)) : 0;
+  const duration = motion === 'off' ? 0 : motion === 'reduced' ? 200 : fullDuration;
   useEffect(() => {
     if (!hasEvent) return undefined;
     const timer = window.setTimeout(() => completed.current?.(eventId), duration);
@@ -29,7 +30,7 @@ export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'ful
   const rookTo = squareCenter(`${event.castle === 'kingside' ? 'f' : 'd'}${rank}`, orientation);
   return <div
     key={eventId}
-    className={`special-move-overlay special-move-${spec.kind} special-move-motion-${motion}`}
+    className={`special-move-overlay special-move-${spec.kind} special-move-motion-${motion}${withMovement ? ' special-move-with-travel' : ''}`}
     style={{ '--special-duration': `${duration}ms`, '--special-accent': accent }}
     role="status" aria-label={spec.kind === 'promotion' ? `Pawn promoted to ${event.promotion}. ${spec.title}.` : spec.kind === 'castle' ? 'Castling. Royal passage.' : 'Check. The other team must respond.'}
     data-special-move={spec.kind} data-testid="special-move-overlay"
@@ -51,7 +52,7 @@ export function SpecialMoveOverlay({ event, orientation = 'white', motion = 'ful
         return <path key={index} d={`M${x + Math.cos(angle) * 43} ${y + Math.sin(angle) * 43}L${x + Math.cos(angle) * 96} ${y + Math.sin(angle) * 96}`} />;
       })}</g>}
     </svg>
-    {spec.kind === 'promotion' && <div className="special-move-character" style={{ left: `${target.x}%`, top: `${target.y}%` }} aria-hidden="true"><PieceArt className="special-move-pawn" type="p" color={event.color} size="100%" accent={accent} /><PieceArt className="special-move-promoted" type={event.promotion} color={event.color} size="100%" accent={accent} /></div>}
+    {spec.kind === 'promotion' && <div className="special-move-character" style={{ left: `${target.x}%`, top: `${target.y}%` }} aria-hidden="true">{!withMovement && <PieceArt className="special-move-pawn" type="p" color={event.color} size="100%" accent={accent} />}<PieceArt className="special-move-promoted" type={event.promotion} color={event.color} size="100%" accent={accent} /></div>}
     <div className="special-move-caption" aria-hidden="true"><span>{spec.kind === 'check' ? 'Check' : spec.kind === 'castle' ? 'King & bastion' : 'Promotion'}</span><strong>{spec.title}</strong></div>
   </div>;
 }

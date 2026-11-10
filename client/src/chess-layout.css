@@ -168,6 +168,27 @@
 .empty-history p { color: #a59d8e; }
 .modal { background: #262522; border-color: #ffffff15; border-radius: 10px; }
 .modal header h2 { font: 750 28px/1.2 'DM Sans',sans-serif; }
+.settings-modal { width: min(820px,calc(100vw - 32px)); padding: 0; }
+.settings-modal > header { padding: 23px 28px; margin: 0; border-bottom: 1px solid #ffffff12; }
+.settings-layout { display: grid; grid-template-columns: 175px minmax(0,1fr); }
+.settings-navigation { background: #21201d; padding: 18px 9px; display: flex; flex-direction: column; gap: 4px; }
+.settings-navigation button { background: none; color: #c1bfba; padding: 13px 12px; border-radius: 4px; text-align: left; font-size: 13px; }
+.settings-navigation button:hover,.settings-navigation button:focus { background: #35332f; color: #fff; }
+.settings-navigation button span { float: right; }
+.settings-content { padding: 0 28px 27px; max-height: min(680px,calc(90dvh - 90px)); overflow-y: auto; overscroll-behavior: contain; }
+.settings-section { padding: 23px 0; border-bottom: 1px solid #ffffff12; scroll-margin: 8px; }
+.settings-section h3 { font-size: 18px; color: #eee; margin: 0 0 8px; }
+.settings-section .setting-field { margin-top: 16px; }
+.settings-section .toggle-setting { margin: 18px 0 0; }
+.toggle-setting small { display: block; font-size: 11px; color: #99968f; margin-top: 4px; }
+.settings-section .select-field { margin-top: 17px; }
+.settings-section .secondary-button { width: 100%; }
+.settings-saved { margin: 20px 0; }
+.board-theme-options { display: flex; gap: 13px; }
+.board-theme-options > button { background: transparent; padding: 3px; color: #b5b2ac; font-size: 11px; border-radius: 6px; border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.board-theme-options > button[aria-pressed=true] { border-color: #81b64c; color: #fff; }
+.board-swatch { display: flex; align-items: center; justify-content: center; width: 68px; height: 57px; border-radius: 3px; background: conic-gradient(var(--swatch-dark) 25%,var(--swatch-light) 0 50%,var(--swatch-dark) 0 75%,var(--swatch-light) 0); background-size: 50% 50%; }
+@media(max-width:600px) { .settings-layout { grid-template-columns:1fr; }.settings-navigation { flex-direction:row; overflow-x:auto; padding:8px; }.settings-navigation button { white-space:nowrap; font-size:11px; padding:10px; }.settings-navigation button span { margin-left:5px; }.settings-modal > header { padding:20px; }.settings-content { padding:0 20px 23px; max-height:calc(88dvh - 130px); } }
 .field-help, .dialog-copy { color: #b5ad9f; }
 .toggle-setting { color: #d0c9bb; }
 .guide-lead { font: 14px/1.6 var(--serif); color: #c5bdad; }

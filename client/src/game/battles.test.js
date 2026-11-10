@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { actorAccent, BATTLE_REGISTRY, BATTLE_VARIANTS, MOVEMENT_REGISTRY, REACTION_REGISTRY, battleDetails, battleSpec, hashSeed, movementDetails, movementSpec, phaseTimings, randomFromSeed, specialMoveDetails, squareCenter } from './battles.js';
+import { actorAccent, BATTLE_REGISTRY, BATTLE_VARIANTS, MOVEMENT_REGISTRY, REACTION_REGISTRY, battleDetails, battleSpec, castlingRookSquares, hashSeed, movementDetails, movementSpec, phaseTimings, randomFromSeed, specialMoveDetails, squareCenter } from './battles.js';
 
 const capture = { id: 'move-1', from: 'e4', to: 'd5', piece: 'p', color: 'w', seat: 'W1', captured: 'p' };
 
@@ -184,4 +184,13 @@ test('capture-promotion preserves the final role and reserves a bounded coronati
   assert.equal(event.piece, 'p');
   assert.equal(event.promotion, 'q');
   assert.ok(event.duration >= 1150 && event.duration <= 1350);
+});
+
+test('castling identifies the companion rook in either direction and on either team', () => {
+  assert.deepEqual(castlingRookSquares({ piece: 'k', from: 'e1', to: 'g1', castle: 'kingside' }), { from: 'h1', to: 'f1' });
+  assert.deepEqual(castlingRookSquares({ piece: 'k', from: 'e1', to: 'c1', castle: 'queenside' }), { from: 'a1', to: 'd1' });
+  assert.deepEqual(castlingRookSquares({ piece: 'k', from: 'e8', to: 'g8', castle: 'kingside' }), { from: 'h8', to: 'f8' });
+  const event = movementSpec({ piece: 'k', color: 'b', from: 'e8', to: 'c8', castle: 'queenside' });
+  assert.deepEqual(event.companion, { from: 'a8', to: 'd8' });
+  assert.equal(castlingRookSquares({ piece: 'r', from: 'h1', to: 'f1' }), null);
 });

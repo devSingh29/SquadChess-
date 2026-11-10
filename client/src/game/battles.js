@@ -111,8 +111,15 @@ export function movementSpec(event) {
     ...defaults, ...event,
     movementVariant: choreography.id,
     choreography,
+    companion: castlingRookSquares(event),
     duration: Number.isFinite(event.duration) ? Math.max(200, Math.min(1500, event.duration)) : defaults.duration,
   };
+}
+
+export function castlingRookSquares(event) {
+  if (event?.piece !== 'k' || !['kingside', 'queenside'].includes(event.castle) || !/^[a-h][18]$/.test(event.from || '')) return null;
+  const rank = event.from[1];
+  return { from: `${event.castle === 'kingside' ? 'h' : 'a'}${rank}`, to: `${event.castle === 'kingside' ? 'f' : 'd'}${rank}` };
 }
 
 export function squareCenter(square, orientation = 'white') {

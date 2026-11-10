@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import PieceArt from './PieceArt.jsx';
-import { movementSpec, phaseTimings, PIECE_NAMES, squareCenter } from '../game/battles.js';
+import { MOVEMENT_REGISTRY, movementSpec, phaseTimings, PIECE_NAMES, squareCenter } from '../game/battles.js';
 import './movement.css';
 
 /** Short role-specific travel, independent of the authoritative board position. */
@@ -12,7 +12,8 @@ export function MovementOverlay({ event, orientation = 'white', motion = 'full',
   const eventId = event?.id ?? event?.seed;
   const hasEvent = Boolean(event);
   const duration = motion === 'off' ? 0 : motion === 'reduced' ? 130 : spec?.duration || 0;
-  const timing = spec ? phaseTimings(spec.choreography, duration) : null;
+  const travelDuration = motion !== 'full' ? duration : spec?.promotion ? Math.min(580, duration * .6) : spec?.castle ? Math.min(650, duration * .8) : duration;
+  const timing = spec ? phaseTimings(spec.choreography, travelDuration) : null;
   const attackAt = timing?.attackAt || 0;
   const settleAt = timing?.settleAt || 0;
   useEffect(() => {
@@ -32,6 +33,9 @@ export function MovementOverlay({ event, orientation = 'white', motion = 'full',
   const to = squareCenter(spec.to, orientation);
   if (!from || !to) return null;
   const direction = to.x >= from.x ? 1 : -1;
+  const companionFrom = spec.companion && squareCenter(spec.companion.from, orientation);
+  const companionTo = spec.companion && squareCenter(spec.companion.to, orientation);
+  const rookMovement = MOVEMENT_REGISTRY.r[(spec.seed >>> 0) % MOVEMENT_REGISTRY.r.length];
   const style = {
     '--movement-duration': `${duration}ms`,
     '--movement-gait-duration': `${Math.max(100, timing.attack / (spec.piece === 'r' ? 2 : 3))}ms`,
@@ -60,9 +64,17 @@ export function MovementOverlay({ event, orientation = 'white', motion = 'full',
           style={{ animationDelay: `${timing.anticipation + timing.attack * fraction * .75}ms` }} />;
       })}
     </svg>
-    <div className="movement-unit" style={{ left: `${to.x}%`, top: `${to.y}%`, animationName: `movement-lifetime, ${spec.choreography.motionName}` }} aria-hidden="true">
+    <div className="movement-unit" style={{ left: `${to.x}%`, top: `${to.y}%`, animationName: `${spec.promotion ? 'movement-promotion-lifetime' : 'movement-lifetime'}, ${spec.choreography.motionName}`, animationDuration: `${duration}ms, ${travelDuration}ms` }} aria-hidden="true">
       <PieceArt type={spec.piece} color={spec.color} size="100%" accent={spec.accent} />
     </div>
+    {companionFrom && companionTo && <div className="movement-unit movement-companion" data-companion="rook" data-from={spec.companion.from} data-to={spec.companion.to}
+      style={{
+        left: `${companionTo.x}%`, top: `${companionTo.y}%`,
+        '--movement-start-x': `${(companionFrom.x - companionTo.x) * 8}%`,
+        '--movement-start-y': `${(companionFrom.y - companionTo.y) * 8}%`,
+        '--movement-facing': companionTo.x >= companionFrom.x ? 1 : -1,
+        animationName: `movement-lifetime, ${rookMovement.motionName}`, animationDuration: `${duration}ms, ${travelDuration}ms`,
+      }} aria-hidden="true"><PieceArt type="r" color={spec.color} size="100%" accent={spec.accent} /></div>}
   </div>;
 }
 

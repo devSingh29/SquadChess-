@@ -21,8 +21,8 @@ Default full two-move White opening remains. Optional Balanced opening limits on
 
 ## Current finishing work
 
-1. Connect all ordinary-move artwork to gameplay/replay, including castling rook movement and promotion timing.
-2. Finish familiar Play / Match History / How to Play / Settings navigation and settings organization.
+1. Ordinary movement is connected to gameplay and replay; castling moves both pieces, quiet promotion combines travel and transformation.
+2. Familiar Play / Match History / How to Play / Settings navigation and sectioned settings are implemented. Board colors and coordinates are configurable.
 3. Run final automated checks and 28 browser scenarios, inspect desktop/mobile appearance and repair any failures.
 4. Update screenshots and contributor/run instructions, commit coherent checkpoints.
 
@@ -38,3 +38,7 @@ Default full two-move White opening remains. Optional Balanced opening limits on
 `npm run dev` serves the game at http://localhost:5173. `npm test`, `npm run lint`, `npm run build` run local checks. Browser tests are in `client/tests/game.spec.js` and require Playwright Chromium and a running local server.
 
 The code can be checkpointed without resetting the conversation. There is no reliable tool to detect a 10% usage threshold or request a usage reset. Continue from this file and the concrete source/tests after context compaction.
+
+## Verification checkpoint
+
+First full integrated run passed 88 tests, lint and the release build. Browser suite is running with updated navigation, all six ordinary movements, all 24 capture attacks and preference recovery. Independent review found malformed imported castling/en-passant rights accepted by chess.js; additional validation is being tested.

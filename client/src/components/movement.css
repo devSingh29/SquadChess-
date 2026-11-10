@@ -16,6 +16,7 @@
 .movement-overlay[data-gait="stomp"] .piece-art__leg { animation-name: movement-stomp; }
 .movement-overlay[data-gait="elegant"] .piece-art__leg,
 .movement-overlay[data-gait="stately"] .piece-art__leg { animation-name: movement-small-step; }
+.movement-overlay .movement-companion .piece-art__leg { animation-name: movement-stomp; }
 .movement-overlay[data-phase="anticipation"] .piece-art__leg,
 .movement-overlay[data-phase="anticipation"] .piece-art__arm { animation-play-state: paused; }
 .movement-overlay[data-phase="settle"] .piece-art__leg,
@@ -25,6 +26,7 @@
 .movement-arrival { fill: none; stroke: var(--movement-accent); stroke-width: 1.5; animation: movement-arrival var(--movement-settle-duration) var(--movement-settle-at) both; }
 .movement-overlay[data-effect="glimmer"] .movement-footprint { filter: drop-shadow(0 0 3px var(--movement-accent)); }
 @keyframes movement-lifetime { 0%, 93% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes movement-promotion-lifetime { 0%, 56% { opacity: 1; } 65%, 100% { opacity: 0; } }
 @keyframes movement-pedestal { 0%, 100% { opacity: 1; } 12%, 80% { opacity: .12; } }
 @keyframes movement-step { 0%, 100% { transform: rotate(-16deg) translateY(-1px); } 50% { transform: rotate(18deg) translateY(-4px); } }
 @keyframes movement-small-step { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(11deg) translateY(-2px); } }
