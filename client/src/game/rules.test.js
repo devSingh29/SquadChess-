@@ -235,3 +235,19 @@ test('invalid actions are safe and neither valid nor invalid actions mutate thei
   assert.equal(legalMoves(impossible).some((move) => move.captured === 'k'), false);
   assert.throws(() => play(impossible, 'e2', 'e8'), /never captured/);
 });
+
+test('imported positions cannot invent castling rooks or en passant victims', () => {
+  assert.throws(() => createPosition('4k3/8/8/8/8/8/P7/4K3 w K - 0 1'), /original king and rook/);
+  assert.throws(() => createPosition('4k3/8/8/8/8/8/P7/5K1R w K - 0 1'), /original king and rook/);
+  assert.throws(() => createPosition('7k/8/8/8/3p4/8/8/K7 b - e3 0 1'), /en passant target/);
+  assert.throws(() => createPosition('7k/8/8/8/3pP3/4N3/8/K7 b - e3 0 1'), /en passant target/);
+  assert.throws(() => createPosition('7k/8/8/8/3pP3/8/4N3/K7 b - e3 0 1'), /en passant target/);
+  const valid = createPosition('7k/8/8/8/3pP3/8/8/K7 b - e3 0 1');
+  assert.equal(play(valid, 'd4', 'e3').move.captureSquare, 'e4');
+  assert.throws(() => createPosition(undefined, { settings: null }), /opening settings/);
+});
+
+test('an imported second slot cannot start in check or require an impossible move', () => {
+  assert.throws(() => createPosition('4k3/8/8/8/8/8/8/K3r3 w - - 0 1', { slot: 1 }), /second move requires/);
+  assert.throws(() => createPosition('8/8/8/8/p7/P7/7r/K1k5 w - - 0 1', { slot: 1 }), /second move requires/);
+});

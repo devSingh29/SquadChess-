@@ -42,3 +42,7 @@ The code can be checkpointed without resetting the conversation. There is no rel
 ## Verification checkpoint
 
 First full integrated run passed 88 tests, lint and the release build. Browser suite is running with updated navigation, all six ordinary movements, all 24 capture attacks and preference recovery. Independent review found malformed imported castling/en-passant rights accepted by chess.js; additional validation is being tested.
+
+Second checkpoint: `3cd0035` adds familiar navigation/settings and character travel. Final correctness run passes 91 automated tests, lint and build. Browser suite passes all 30 scenarios after fixing duplicate overlay keys. Complete-game simulations: 28 finished games, 5,539 moves, both opening modes and both player colors, with restored/replayed positions agreeing.
+
+Final visual review fixed a drag-wrapper sizing issue that clipped feet. Replay now waits for each effect's actual completion and pauses when leaving the replay or opening settings. Final edge-artwork and castling/promotion browser checks are in progress.

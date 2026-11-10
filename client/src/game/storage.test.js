@@ -233,8 +233,17 @@ test('preferences round trip and unavailable settings storage is reported', () =
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (key) => records.get(key) ?? null, setItem: (key, value) => records.set(key, value) } });
   try {
     assert.deepEqual(loadPreferences(), {});
-    savePreferences({ motion: 'reduced', volume: 0.4, sound: true });
-    assert.deepEqual(loadPreferences(), { motion: 'reduced', volume: 0.4, sound: true });
+    const preferences = { motion: 'reduced', volume: 0.4, sound: true, boardTheme: 'walnut', showCoordinates: false };
+    savePreferences({ ...preferences, obsoleteSetting: 'ignored' });
+    assert.deepEqual(loadPreferences(), preferences);
+    for (const patch of [{ motion: 'spinning' }, { volume: 9 }, { sound: 'yes' }, { boardTheme: 'unknown' }, { showCoordinates: 'no' }]) {
+      assert.throws(() => savePreferences({ ...preferences, ...patch }), error => error.code === 'preferences-invalid');
+      assert.deepEqual(loadPreferences(), preferences);
+    }
+    records.set('squadchess.preferences.v1', JSON.stringify({ boardTheme: 'unknown' }));
+    assert.throws(() => loadPreferences(), error => error.code === 'preferences-invalid' && /Default settings/.test(error.message));
+    records.set('squadchess.preferences.v1', '{broken');
+    assert.throws(() => loadPreferences(), error => error.code === 'preferences-invalid');
     Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('Blocked'); } });
     assert.throws(() => loadPreferences(), (error) => error.code === 'preferences-unavailable');
   } finally {

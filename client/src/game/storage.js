@@ -389,24 +389,52 @@ export function exportMoveList(match) {
   return lines.join('\n');
 }
 
+function sanitizedPreferences(value) {
+  if (!isObject(value)) throw new Error('Settings must be an object.');
+  const preferences = {};
+  for (const key of ['sound', 'showCoordinates']) {
+    if (value[key] === undefined) continue;
+    if (typeof value[key] !== 'boolean') throw new Error(`${key} must be true or false.`);
+    preferences[key] = value[key];
+  }
+  for (const [key, choices] of [['motion', ['full', 'reduced', 'off']], ['boardTheme', ['green', 'walnut', 'slate']]]) {
+    if (value[key] === undefined) continue;
+    if (!choices.includes(value[key])) throw new Error(`${key} is not a supported choice.`);
+    preferences[key] = value[key];
+  }
+  if (value.volume !== undefined) {
+    if (!Number.isFinite(value.volume) || value.volume < 0 || value.volume > 1) throw new Error('Volume must be between zero and one.');
+    preferences.volume = value.volume;
+  }
+  return preferences;
+}
+
 export function loadPreferences() {
+  let text;
   try {
     if (!globalThis.localStorage) throw new Error('Unavailable');
-    const text = globalThis.localStorage.getItem(PREFERENCES_KEY);
-    if (!text) return {};
-    const value = JSON.parse(text);
-    if (!isObject(value)) throw new Error('Invalid settings');
-    return value;
+    text = globalThis.localStorage.getItem(PREFERENCES_KEY);
   } catch (error) {
     throw new StorageError('Your settings could not be loaded. Default settings will be used.', 'preferences-unavailable', { cause: error });
+  }
+  if (!text) return {};
+  try {
+    return sanitizedPreferences(JSON.parse(text));
+  } catch (error) {
+    throw new StorageError('Your saved settings are damaged or invalid. Default settings will be used.', 'preferences-invalid', { cause: error });
   }
 }
 
 export function savePreferences(preferences) {
+  let clean;
+  try { clean = sanitizedPreferences(preferences); }
+  catch (error) {
+    throw new StorageError('These settings contain an invalid value. Your previous settings have been kept.', 'preferences-invalid', { cause: error });
+  }
   try {
-    if (!globalThis.localStorage || !isObject(preferences)) throw new Error('Unavailable');
-    globalThis.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
-    return clone(preferences);
+    if (!globalThis.localStorage) throw new Error('Unavailable');
+    globalThis.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(clean));
+    return clean;
   } catch (error) {
     throw new StorageError('Your settings could not be saved in this browser. They will work for this visit.', 'preferences-unavailable', { cause: error });
   }

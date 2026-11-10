@@ -7,11 +7,39 @@ const other = (color) => color === 'w' ? 'b' : 'w';
 const squarePattern = /^[a-h][1-8]$/;
 
 function positionSettings(settings = {}) {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    throw new Error('The opening settings are not valid.');
+  }
   if (settings.balancedOpening !== undefined && typeof settings.balancedOpening !== 'boolean') {
     throw new Error('The opening setting must be on or off.');
   }
   const balancedOpening = settings.balancedOpening ?? false;
   return { balancedOpening, fullTwoMoveOpening: !balancedOpening };
+}
+
+function validateSpecialRights(game, fields) {
+  const castlingPieces = {
+    K: ['e1', 'h1', 'w'], Q: ['e1', 'a1', 'w'],
+    k: ['e8', 'h8', 'b'], q: ['e8', 'a8', 'b'],
+  };
+  for (const flag of fields[2].replace('-', '')) {
+    const [kingSquare, rookSquare, color] = castlingPieces[flag];
+    const king = game.get(kingSquare);
+    const rook = game.get(rookSquare);
+    if (king?.type !== 'k' || king.color !== color || rook?.type !== 'r' || rook.color !== color) {
+      throw new Error('Castling rights require the original king and rook on their starting squares.');
+    }
+  }
+  if (fields[3] !== '-') {
+    const target = fields[3];
+    const respondingWhite = fields[1] === 'w';
+    const pawnSquare = `${target[0]}${Number(target[1]) + (respondingWhite ? -1 : 1)}`;
+    const origin = `${target[0]}${respondingWhite ? 7 : 2}`;
+    const pawn = game.get(pawnSquare);
+    if (game.get(target) || game.get(origin) || pawn?.type !== 'p' || pawn.color !== (respondingWhite ? 'b' : 'w')) {
+      throw new Error('The en passant target does not match a pawn that just advanced two squares.');
+    }
+  }
 }
 
 export function turnCapacity(position) {
@@ -90,6 +118,12 @@ export function createPosition(fen = START_FEN, options = {}) {
   fields[4] = String(halfmove);
   fields[5] = String(turnNumber);
   game = new Chess(fields.join(' '));
+  // chess.js accepts these inconsistent rights; inspecting their legal moves
+  // can otherwise synthesize a rookless castle or even a missing captured pawn.
+  validateSpecialRights(game, fields);
+  if (slot === 1 && (game.isCheck() || game.isStalemate())) {
+    throw new Error('A teammate’s second move requires a safe king and at least one legal move.');
+  }
   const repetition = {};
   if (options.repetition != null) {
     for (const [key, count] of Object.entries(options.repetition)) {

@@ -79,6 +79,9 @@
 .board-shell { background: transparent; border: 0; padding: 0; border-radius: 4px; box-shadow: none; }
 .board-corner { display: none; }
 .board-surface { border-radius: 4px; box-shadow: none; }
+/* The drag library's un-sized wrapper must not give the portrait SVG its natural tall height. */
+.board-character { width: 100%; aspect-ratio: 1; position: relative; }
+.board-character > .piece-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .showcase-bottom { margin-top: 12px; gap: 13px; }
 .mini-avatars > svg { background: #49453e; border: 0; border-radius: 4px; margin-right: 5px; padding: 1px; width: 40px; height: 40px; }
 .showcase-bottom p { margin-left: 0; font-size: 13px; gap: 5px; }

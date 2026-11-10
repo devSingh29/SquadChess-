@@ -22,6 +22,8 @@ npm run build    # Create the release in client/dist
 npm run preview  # Serve the built release locally
 ```
 
+For browser checks, leave the game running at `http://localhost:5173` in another terminal. Install the test browser once with `npm exec --prefix client -- playwright install chromium`, then run `npm run test:e2e`. The browser suite covers ordinary play, saved-game recovery, both opening modes, touch and keyboard controls, and the capture gallery.
+
 ## The rules
 
 - Each team shares every piece of its color. By default, White opens with two moves: player one, then their teammate. The Black team then takes its two moves. The same piece may move twice.
@@ -43,7 +45,13 @@ The teammate and opposing team have separate difficulty settings. Their computer
 
 ## Battles, saves, and replay
 
-Each piece has several illustrated attacks. The capturing piece, defeated piece, acting player, and saved variation determine the battle. Full, reduced, and disabled motion settings are available, along with sound controls. Battle effects never change the rules.
+The start screen uses a familiar Chess.com-style arrangement: a large board beside match setup, a compact navigation sidebar, green action buttons, and clearly contrasting board squares. The custom fantasy characters remain easy to distinguish on that board.
+
+Every ordinary move has character-specific travel: soldiers step or march, riders hop or vault, mages glide, stone guardians stomp, queens sweep forward, and kings take measured steps. There are two movement variations for each of the six piece roles.
+
+Captures use twenty-four signature attacks, four per role, with reactions chosen for the defeated piece. The capturing piece, defeated piece, acting player, and saved variation determine the battle. A brief anticipation leads into the strike, contact, defeat, and settling movement. Full, reduced, and disabled motion settings are available, along with sound controls. Battle effects never change the rules.
+
+Open **Explore capture battles** from the home screen, or **Explore the capture battles** in Settings, to visit the battle gallery. Try all six attackers, all twenty-four encounters, five target types, four player accents, and the two-capture team celebration without changing a real game.
 
 Matches save automatically in this browser. Continue restores an unfinished position and any already-confirmed teammate move. History preserves completed games and lets you replay their original battle choices. Export a SquadChess save file for backup or transfer; import checks the entire move history before accepting it and creates a new local copy. A readable move-list export labels all four players. These are custom SquadChess records, not ordinary alternating-turn chess records.
 
@@ -57,4 +65,4 @@ Browser storage belongs to the browser and local address you use. Export any mat
 
 This version is for solo play with computer teammates and opponents. Human multiplayer, accounts, public hosting, and online rankings are not part of this release.
 
-**Definitions:** Node.js = the program that runs the local development tools; React = the screen-building library; API key = a credential for an external service; check = a direct threat to the king; checkmate = check with no legal escape; stalemate = no legal move without check; castling = a combined king-and-rook move; promotion = replacing a pawn at the far edge; en passant = a special immediate pawn capture; computer search = examining future moves to choose a move; scaffold = an early starting structure.
+**Definitions:** Node.js = the program that runs the local development tools; React = the screen-building library; API key = a credential for an external service; terminal = the window where launch commands run; browser suite = automated tests that interact with the visible game; check = a direct threat to the king; checkmate = check with no legal escape; stalemate = no legal move without check; castling = a combined king-and-rook move; promotion = replacing a pawn at the far edge; en passant = a special immediate pawn capture; computer search = examining future moves to choose a move; scaffold = an early starting structure.

@@ -77,25 +77,28 @@ function App() {
   const [message, setMessage] = useState(initialPreferences.error);
   const importRef = useRef(null);
   const sounded = useRef(null);
+  const soundEvent = screen === 'replay' ? replay?.event : presentation;
 
   useEffect(() => {
     let live = true;
     Promise.all([getSavedMatch(), listMatches()]).then(([game, matches]) => { if (live) { setSaved(game); setHistory(matches); } }).catch(error => { if (live) setMessage(error.message); });
     const timer = setInterval(() => controller.chargeClock(), 200);
-    const hidden = () => { if (document.hidden) controller.pause(); };
+    const hidden = () => { if (document.hidden) { controller.pause(); setReplay(current => current ? { ...current, playing: false, event: null } : current); } };
     const leaving = () => { controller.pause(); controller.persist(); };
     document.addEventListener('visibilitychange', hidden); window.addEventListener('pagehide', leaving);
     return () => { live = false; clearInterval(timer); document.removeEventListener('visibilitychange', hidden); window.removeEventListener('pagehide', leaving); };
   }, [controller]);
   useEffect(() => { controller.setPreferences(preferences); }, [preferences, controller]);
   useEffect(() => {
-    if (presentation && presentation.id !== sounded.current) {
-      sounded.current = presentation.id;
-      if (preferences.sound) playMoveSound(presentation, preferences.volume);
+    if (!soundEvent) { sounded.current = null; return; }
+    const identity = `${screen}:${soundEvent.id}`;
+    if (identity !== sounded.current) {
+      sounded.current = identity;
+      if (preferences.sound) return playMoveSound(soundEvent, preferences.volume, preferences.motion);
     }
-  }, [presentation, preferences.sound, preferences.volume]);
+  }, [soundEvent, screen, preferences.sound, preferences.volume, preferences.motion]);
   useEffect(() => {
-    if (!replay?.playing) return;
+    if (screen !== 'replay' || modal || !replay?.playing || replay.event) return;
     const timer = setTimeout(() => {
       setReplay(current => {
         if (!current?.playing) return current;
@@ -103,16 +106,17 @@ function App() {
         const event = current.match.events[index - 1];
         return { ...current, index, event, playing: index < current.match.events.length };
       });
-    }, replay.event?.duration && preferences.motion === 'full' ? replay.event.duration + 120 : 650);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [replay, preferences.motion]);
+  }, [replay, screen, modal]);
 
   async function refreshHistory() { try { const games = await listMatches(); setHistory(games); setSaved(await getSavedMatch()); } catch (error) { setMessage(error.message); } }
-  function navigate(next) { window.scrollTo(0, 0); if (next !== 'game') controller.pause(); setScreen(next); setSelected(null); if (next === 'history') refreshHistory(); }
+  function navigate(next) { window.scrollTo(0, 0); if (next !== 'game') controller.pause(); if (next !== 'replay') setReplay(current => current ? { ...current, playing: false, event: null } : current); setScreen(next); setSelected(null); if (next === 'history') refreshHistory(); }
   function startGame() { window.scrollTo(0, 0); unlockAudio(); setSelected(null); setPromotion(null); setFlipped(false); setPreviewStep(1); controller.start(config); setScreen('game'); }
   function continueGame(game = match || saved) { window.scrollTo(0, 0); if (!game) return; if (game !== match) controller.load(game); setScreen('game'); setSelected(null); setFlipped(false); }
   function changePreferences(patch) { const next = { ...preferences, ...patch }; setPreferences(next); try { savePreferences(next); } catch (error) { setMessage(error.message); } }
-  function openModal(name) { if (['settings', 'help', 'resign'].includes(name)) controller.pause(); setModal(name); }
+  function finishReplayEvent(id) { setReplay(current => current?.event?.id === id ? { ...current, event: null } : current); }
+  function openModal(name) { if (['settings', 'help', 'resign'].includes(name)) controller.pause(); setReplay(current => current ? { ...current, playing: false, event: null } : current); setModal(name); }
   async function importFile(event) {
     const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
     try { const game = await importMatch(await file.text()); controller.load(game); setSaved(game); setScreen('game'); setMessage('Game imported. Resume whenever you’re ready.'); } catch (error) { setMessage(error.message); }
@@ -149,7 +153,7 @@ function App() {
   availableMoves.forEach(move => { squareStyles[move.to] = { background: move.captured ? 'radial-gradient(transparent 58%, rgba(202, 113, 100, .7) 61%, transparent 71%)' : 'radial-gradient(rgba(29, 67, 56, .48) 17%, transparent 19%)' }; });
   if (checkedSquare) squareStyles[checkedSquare] = { background: 'radial-gradient(rgba(227, 85, 85, .9), rgba(227, 85, 85, .12))' };
   if (keyboardSquare) squareStyles[keyboardSquare] = { ...squareStyles[keyboardSquare], boxShadow: 'inset 0 0 0 3px #7ee3c7' };
-  const pieces = Object.fromEntries(['w', 'b'].flatMap(color => Object.keys(PIECE_NAMES).map(type => [`${color}${type.toUpperCase()}`, () => <PieceArt type={type} color={color} size="100%" />])));
+  const pieces = Object.fromEntries(['w', 'b'].flatMap(color => Object.keys(PIECE_NAMES).map(type => [`${color}${type.toUpperCase()}`, () => <div className="board-character"><PieceArt type={type} color={color} size="100%" /></div>])));
   function proposeMove(from, to) {
     if (!canMove || !to) return;
     const candidates = legalMoves(livePosition, from).filter(move => move.to === to);
@@ -188,9 +192,9 @@ function App() {
           squareRenderer: ({ square, children }) => <div style={{ width: '100%', height: '100%', opacity: !decorative && battle && preferences.motion === 'full' && (square === battle.from || square === battle.to || square === battle.captureSquare) || !decorative && movement && preferences.motion === 'full' && (square === movement.from || square === movement.to || movement.castle && [`${movement.castle === 'kingside' ? 'f' : 'd'}${movement.from[1]}`, `${movement.castle === 'kingside' ? 'h' : 'a'}${movement.from[1]}`].includes(square)) ? 0 : 1 }}>{children}</div>,
         }} />
         {!decorative && preview && <PlannerOverlay preview={preview} orientation={orientation} />}
-        {!decorative && movement && <MovementOverlay key={movement.id} event={movement} orientation={orientation} motion={preferences.motion} onComplete={specialEvent ? undefined : () => screen === 'game' ? controller.finishPresentation(movement.id) : setReplay(current => ({ ...current, event: null }))} />}
-        {!decorative && specialEvent && <SpecialMoveOverlay key={specialEvent.id} event={specialEvent} withMovement orientation={orientation} motion={preferences.motion} onComplete={() => screen === 'game' ? controller.finishPresentation(specialEvent.id) : setReplay(current => ({ ...current, event: null }))} />}
-        {!decorative && battle && <BattleOverlay key={battle.id} event={battle} orientation={orientation} motion={preferences.motion} onComplete={() => screen === 'game' ? controller.finishPresentation(battle.id) : setReplay(current => ({ ...current, event: null }))} />}
+        {!decorative && movement && <MovementOverlay key={`movement:${movement.id}`} event={movement} orientation={orientation} motion={preferences.motion} onComplete={specialEvent ? undefined : () => screen === 'game' ? controller.finishPresentation(movement.id) : finishReplayEvent(movement.id)} />}
+        {!decorative && specialEvent && <SpecialMoveOverlay key={`special:${specialEvent.id}`} event={specialEvent} withMovement orientation={orientation} motion={preferences.motion} onComplete={() => screen === 'game' ? controller.finishPresentation(specialEvent.id) : finishReplayEvent(specialEvent.id)} />}
+        {!decorative && battle && <BattleOverlay key={`battle:${battle.id}`} event={battle} orientation={orientation} motion={preferences.motion} onComplete={() => screen === 'game' ? controller.finishPresentation(battle.id) : finishReplayEvent(battle.id)} />}
       </div>
       {!decorative && preview && <span className="preview-badge"><span /> Combination preview · move {previewStep}</span>}
     </div>;
@@ -238,13 +242,13 @@ function App() {
       {screen === 'game' && <><div className="panel-eyebrow"><span className={match.phase === 'thinking' || preview?.status === 'thinking' ? 'pulse-dot' : 'static-dot'} /> {result ? 'BATTLE COMPLETE' : match.phase === 'paused' ? 'TAKE A BREATH' : match.phase === 'error' ? 'GAME PRESERVED' : canMove || preview ? 'YOUR TEAM’S TURN' : 'WATCH THE BATTLE'}</div>
         {result ? <div className="result-panel"><div className="result-emblem"><Icon name={result.winner === humanColor ? 'shield' : 'flag'} size={40} /></div><h2>{summary}</h2><p>{RESULT_NAMES[result.reason] || result.reason}</p><button className="primary-button" onClick={() => { controller.start(match.config); setSelected(null); }}>Rematch <Icon name="arrow" /></button><button className="secondary-button" onClick={() => { setReplay({ match, index: 0, playing: false, event: null }); setScreen('replay'); }}>Watch the replay</button></div>
         : match.phase === 'paused' || match.phase === 'error' ? <div className="pause-panel"><Icon name={match.phase === 'error' ? 'shield' : 'pause'} size={35} /><h2>{match.phase === 'error' ? 'Your battle is safe.' : 'The arena can wait.'}</h2><p>{match.error || 'Your position, plan, and clocks are preserved. Pick up exactly where you left off.'}</p><button className="primary-button" onClick={controller.resume}>{match.phase === 'error' ? 'Retry computer player' : 'Return to battle'}<Icon name="play" size={16} /></button></div>
-        : <><h2 className="plan-title">{preview ? 'See the combination.' : canMove ? 'Make the first move.' : `${currentPlayer.name} takes the lead.`}</h2><p className="plan-description">{preview ? preview.status === 'ready' && !preview.second ? 'This move ends your team’s turn. Confirm when you’re ready for the rival squad’s reply.' : 'Your move sets the stage. Lyra’s follow-up is locked in when you confirm.' : canMove ? 'Choose a piece and a destination. Lyra will show you how she plans to follow through.' : `${currentPlayer.role} · move ${actingSeat[1]} of ${presentation?.seat === 'w1' && match.events.length === 1 && match.settings?.balancedOpening ? 1 : turnCapacity(livePosition)}. Your next plan begins after the rival squad finishes.`}</p>
+        : <><h2 className="plan-title">{preview ? 'See the combination.' : canMove ? 'Make the first move.' : `${currentPlayer.name} ${currentPlayer.name === 'You' ? 'take' : 'takes'} the lead.`}</h2><p className="plan-description">{preview ? preview.status === 'ready' && !preview.second ? 'This move ends your team’s turn. Confirm when you’re ready for the rival squad’s reply.' : 'Your move sets the stage. Lyra’s follow-up is locked in when you confirm.' : canMove ? 'Choose a piece and a destination. Lyra will show you how she plans to follow through.' : `${currentPlayer.role} · move ${actingSeat[1]} of ${presentation?.seat === 'w1' && match.events.length === 1 && match.settings?.balancedOpening ? 1 : turnCapacity(livePosition)}. Your next plan begins after the rival squad finishes.`}</p>
         <div className="plan-steps"><button className={`plan-step ${previewStep === 1 && preview ? 'focused' : ''}`} onClick={() => preview && setPreviewStep(1)} disabled={!preview}><span className="step-number gold">1</span><span><small>YOUR MOVE</small><strong>{preview ? moveLabel(preview.first) : 'Set the intention'}</strong></span>{preview && <span className="step-check">✓</span>}</button><div className="step-connector" /><button className={`plan-step ${previewStep === 2 && preview ? 'focused' : ''}`} onClick={() => preview?.second && setPreviewStep(2)} disabled={!preview?.second}><span className="step-number teal">2</span><span><small>LYRA’S FOLLOW-UP</small><strong>{preview?.status === 'thinking' ? 'Finding our next move…' : preview?.second ? moveLabel(preview.second) : preview ? livePosition.settings?.balancedOpening && livePosition.openingPending ? 'Skipped for balanced opening' : 'Turn ends after your move' : 'A shared plan takes shape'}</strong></span></button></div>
         <div className="teammate-note"><div className="note-header"><span className="small-avatar"><PieceArt type="b" color={humanColor} size={36} /></span><strong>Lyra</strong><span>YOUR TEAMMATE</span></div><p>{preview?.explanation || (hinting ? 'Let me look for a combination we can play together…' : '“A good first move makes the second one matter. Let’s find ours.”')}</p></div>
         {preview ? <><button className="primary-button" disabled={preview.status !== 'ready'} onClick={() => { unlockAudio(); controller.confirm(); setPreviewStep(1); }}>{preview.status === 'ready' ? 'Play team turn' : 'Planning our combination…'}<Icon name="arrow" /></button><button className="text-button change-plan" onClick={() => { controller.cancelPreview(); setSelected(null); }}>Change my move</button></> : <button className="secondary-button hint-button" onClick={controller.hint} disabled={!canMove || hinting}><Icon name="spark" size={17} />{hinting ? 'Looking for a combination…' : 'Ask Lyra for a hint'}</button>}
         <div className="rule-note"><Icon name="shield" size={16} /><span>Giving check ends your team’s turn.<br />Sometimes one move says enough.</span></div></>}
         <div className="captured-section"><div className="section-heading"><h3>Your squad’s captures</h3><span>{friendlyCaptured.length}</span></div><div className="captured-pieces">{friendlyCaptured.length ? friendlyCaptured.map(e => <span key={e.id} title={PIECE_NAMES[e.captured]}><PieceArt type={e.captured} color={humanColor === 'w' ? 'b' : 'w'} size={33} /></span>) : <p>The battlefield is still whole.</p>}</div></div></>}
-      {screen === 'replay' && <><div className="panel-eyebrow">A BATTLE IN RETROSPECT</div><h2 className="plan-title">Read between the moves.</h2><p className="plan-description">Step through the decisions, or replay the battle with its original capture sequences.</p><input aria-label="Replay move" className="replay-range" type="range" min="0" max={replay.match.events.length} value={replay.index} onChange={e => setReplay({ ...replay, index: Number(e.target.value), event: null, playing: false })} /><div className="replay-controls"><button aria-label="First move" onClick={() => setReplay({ ...replay, index: 0, event: null, playing: false })}>|‹</button><button aria-label="Previous move" onClick={() => setReplay({ ...replay, index: Math.max(0, replay.index - 1), event: null, playing: false })}>‹</button><button className="play-replay" aria-label={replay.playing ? 'Pause replay' : 'Play replay'} onClick={() => setReplay({ ...replay, index: replay.index === replay.match.events.length ? 0 : replay.index, playing: !replay.playing, event: null })}><Icon name={replay.playing ? 'pause' : 'play'} size={17} /></button><button aria-label="Next move" onClick={() => setReplay({ ...replay, index: Math.min(replay.match.events.length, replay.index + 1), event: null, playing: false })}>›</button><button aria-label="Last move" onClick={() => setReplay({ ...replay, index: replay.match.events.length, event: null, playing: false })}>›|</button></div><div className="teammate-note"><p>{lastMove ? `${getPlayer(lastMove.seat, humanColor).name} · ${moveLabel(lastMove)}${lastMove.givesCheck ? ' · Check' : ''}` : `The armies assemble. White starts with ${replay.match.settings?.balancedOpening ? 'one move' : 'two moves'}.`}</p></div></>}
+      {screen === 'replay' && <><div className="panel-eyebrow">A BATTLE IN RETROSPECT</div><h2 className="plan-title">Read between the moves.</h2><p className="plan-description">Step through the decisions, or replay the battle with its original capture sequences.</p><input aria-label="Replay move" className="replay-range" type="range" min="0" max={replay.match.events.length} value={replay.index} onChange={e => setReplay({ ...replay, index: Number(e.target.value), event: null, playing: false })} /><div className="replay-controls"><button aria-label="First move" onClick={() => setReplay({ ...replay, index: 0, event: null, playing: false })}>|‹</button><button aria-label="Previous move" onClick={() => setReplay({ ...replay, index: Math.max(0, replay.index - 1), event: null, playing: false })}>‹</button><button className="play-replay" aria-label={replay.playing ? 'Pause replay' : 'Play replay'} onClick={() => { unlockAudio(); setReplay({ ...replay, index: replay.index === replay.match.events.length ? 0 : replay.index, playing: !replay.playing, event: null }); }}><Icon name={replay.playing ? 'pause' : 'play'} size={17} /></button><button aria-label="Next move" onClick={() => setReplay({ ...replay, index: Math.min(replay.match.events.length, replay.index + 1), event: replay.match.events[replay.index] || null, playing: false })}>›</button><button aria-label="Last move" onClick={() => setReplay({ ...replay, index: replay.match.events.length, event: null, playing: false })}>›|</button></div><div className="teammate-note"><p>{lastMove ? `${getPlayer(lastMove.seat, humanColor).name} · ${moveLabel(lastMove)}${lastMove.givesCheck ? ' · Check' : ''}` : `The armies assemble. White starts with ${replay.match.settings?.balancedOpening ? 'one move' : 'two moves'}.`}</p></div></>}
       <div className="move-log"><div className="section-heading"><h3>Battle record</h3><button className="icon-button" aria-label="Export readable move history" onClick={() => download(exportMoveList(activeMatch), 'squadchess-history.txt', 'text/plain')}><Icon name="download" size={16} /></button></div><div className="move-log-scroll">{activeMatch.events.length ? activeMatch.events.map((event, index) => <button key={event.id} className={`move-log-row ${screen === 'replay' && replay.index === index + 1 ? 'current' : ''}`} onClick={() => { if (screen !== 'replay') controller.pause(); setReplay({ match: activeMatch, index: index + 1, playing: false, event: null }); setScreen('replay'); }}><span>{index + 1}</span><i style={{ background: getPlayer(event.seat, humanColor).accent }} /><span>{getPlayer(event.seat, humanColor).name}</span><strong>{event.san || `${event.from}–${event.to}`}</strong>{event.captured && <Icon name="spark" size={12} />}</button>) : <p className="empty-record">Every great combination starts<br />with a first move.</p>}</div></div>
       <button className="text-button export-button" onClick={() => download(exportMatch(activeMatch), `squadchess-${activeMatch.id.slice(0, 8)}.json`)}><Icon name="download" size={15} /> Save a portable copy</button>
       </aside></div></main>}

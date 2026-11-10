@@ -11,7 +11,8 @@
     "build": "npm run build --prefix client",
     "preview": "npm run preview --prefix client",
     "lint": "npm run lint --prefix client",
-    "test": "npm run test --prefix client"
+    "test": "npm run test --prefix client",
+    "test:e2e": "npm run test:e2e --prefix client"
   },
   "keywords": [],
   "author": "",
