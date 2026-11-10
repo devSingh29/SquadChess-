@@ -35,6 +35,6 @@
   "homepage": "https://github.com/devSingh29/SquadChess-#readme",
   "description": "A local two-move team chess game with cooperative computer play and animated fantasy battles.",
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^10.0.6"
   }
 }
