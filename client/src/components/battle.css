@@ -1,0 +1,367 @@
+.battle-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  isolation: isolate;
+  --battle-accent: #f5c76e;
+}
+
+.battle-overlay *, .battle-overlay *::before, .battle-overlay *::after { pointer-events: none; }
+.battle-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 20%, #0b0f1977 100%);
+  animation: battle-vignette var(--battle-duration) both;
+}
+.battle-unit {
+  position: absolute;
+  width: 18%;
+  height: 21.6%;
+  margin-left: -9%;
+  margin-top: -15%;
+  transform-origin: 50% 85%;
+  filter: drop-shadow(0 6px 3px #0008);
+  will-change: transform, opacity;
+}
+.battle-unit > .piece-art { display: block; width: 100%; height: 100%; }
+.battle-attacker {
+  z-index: 4;
+  animation: battle-lifetime var(--battle-motion-duration) both, battle-pawn-thrust var(--battle-motion-duration) both;
+}
+.battle-attacker > .piece-art { transform: scaleX(var(--battle-direction)); }
+.battle-attacker .battle-attacker-original { animation: battle-promotion-original var(--battle-duration) both; }
+.battle-attacker .battle-attacker-promoted { position: absolute; inset: 0; animation: battle-promotion-arrive var(--battle-duration) both; }
+.battle-attacker .piece-art__weapon { animation: battle-weapon-thrust var(--battle-motion-duration) both; }
+.battle-attacker .piece-art__cape { animation: battle-cape var(--battle-motion-duration) both; transform-origin: 60px 60px; }
+.battle-overlay[data-phase="anticipation"] .battle-attacker .piece-art__weapon { filter: drop-shadow(0 0 3px var(--battle-accent)); }
+.battle-overlay[data-phase="impact"] .battle-attacker,
+.battle-overlay[data-phase="impact"] .battle-attacker .piece-art__weapon,
+.battle-overlay[data-phase="impact"] .battle-attacker .piece-art__cape { animation-play-state: paused; }
+.battle-victim { z-index: 3; animation: battle-victim-fall var(--battle-duration) both; }
+.battle-victim .piece-art__base { animation: battle-base-fade var(--battle-duration) both; }
+.battle-victim .piece-art__shield { animation: battle-shield-fall var(--battle-duration) both; transform-origin: 35px 84px; }
+.battle-overlay[data-articulation="unseat"] .battle-victim .piece-art__rider { animation: battle-unseat var(--battle-duration) both; transform-origin: 50px 60px; }
+.battle-overlay[data-articulation="unseat"] .battle-victim .piece-art__mount { animation: battle-horse-fall var(--battle-duration) both; transform-origin: 60px 115px; }
+.battle-overlay[data-articulation="crown-fall"] .battle-victim .piece-art__crown { animation: battle-crown-fall var(--battle-duration) both; transform-origin: 60px 25px; }
+
+.battle-effects { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; overflow: visible; }
+.battle-trail {
+  fill: none;
+  stroke: var(--battle-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: battle-trail var(--battle-attack-duration) var(--battle-attack-delay) both,
+    battle-trail-fade var(--battle-settle-duration) var(--battle-settle-delay) forwards;
+}
+.battle-trail-glow { stroke-width: 13; filter: blur(6px); opacity: .6; }
+.battle-impact { animation: battle-impact var(--battle-hit-effect-duration) var(--battle-impact-delay) both; }
+.battle-ring { fill: none; stroke: var(--battle-accent); stroke-width: 3; }
+.battle-ring-outer { stroke-width: 1; stroke-dasharray: 13 8; opacity: .8; }
+.battle-impact-cross { stroke: #fff4d7; stroke-width: 5; stroke-linecap: round; fill: none; }
+.battle-rune { display: none; fill: none; stroke: var(--battle-accent); stroke-width: 2; }
+.battle-overlay[data-attacker="b"] .battle-rune,
+.battle-overlay[data-attacker="q"] .battle-rune { display: block; }
+.battle-overlay[data-attacker="b"] .battle-impact-cross,
+.battle-overlay[data-attacker="q"] .battle-impact-cross { stroke-width: 2; opacity: .6; }
+.battle-overlay[data-attacker="r"] .battle-ring { stroke-width: 6; }
+.battle-shard { fill: var(--battle-accent); animation: battle-shard var(--battle-release-duration) both; }
+.battle-overlay[data-fragments="stone"] .battle-shard { fill: #c6bfa8; stroke: #544e58; stroke-width: 1.5; }
+.battle-overlay[data-fragments="embers"] .battle-shard { filter: drop-shadow(0 0 4px var(--battle-accent)); }
+.battle-combo-ring { fill: none; stroke: #fff4d0; stroke-width: 2; stroke-dasharray: 2 10; animation: battle-combo-ring var(--battle-hit-effect-duration) var(--battle-impact-delay) both; transform-box: fill-box; transform-origin: center; }
+.battle-signature { color: var(--battle-accent); fill: none; stroke: var(--battle-accent); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; animation: battle-signature var(--battle-hit-effect-duration) var(--battle-impact-delay) both; }
+.battle-signature-pawn-thrust, .battle-signature-pawn-strike,
+.battle-signature-knight-slash, .battle-signature-bishop-blade,
+.battle-signature-king-sword { fill: #fff3d5; stroke-width: 1.5; }
+.battle-signature-bishop-bind { animation-name: battle-binding; }
+.battle-signature-queen-orbit { animation-name: battle-orbits; }
+.battle-signature-rook-slam, .battle-signature-rook-charge, .battle-signature-rook-shock { stroke-width: 5; }
+.battle-signature-queen-blades path { fill: #fff3d538; }
+.battle-signature-king-shield, .battle-signature-king-command { fill: #f5c76e1a; }
+.battle-promotion-finish { fill: none; stroke: #fff0b0; stroke-width: 2; animation: battle-promotion-rays var(--battle-duration) both; }
+.battle-promotion-crown { fill: #e6bd6940; stroke-width: 3; }
+.battle-underdog .battle-impact-glow { r: 150; }
+.battle-combo .battle-vignette { background: radial-gradient(ellipse at center, transparent, #1c364c88); }
+
+.battle-caption {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  top: 3%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 86%;
+  padding: 9px 22px 11px;
+  text-align: center;
+  color: #fff2d5;
+  background: linear-gradient(90deg, #10192500, #101925ec 18%, #101925ec 82%, #10192500);
+  text-shadow: 0 2px 8px #000;
+  animation: battle-caption var(--battle-duration) both;
+}
+.battle-caption-kicker { display: block; color: var(--battle-accent); font: 600 clamp(7px, 1.1vw, 10px)/1.4 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .18em; }
+.battle-caption strong { display: block; font: 500 clamp(15px, 2vw, 24px)/1.3 Georgia, serif; }
+
+.battle-overlay[data-variant="pawn-thrust"] .battle-attacker { animation-name: battle-lifetime, battle-pawn-thrust; }
+.battle-overlay[data-variant="pawn-rush"] .battle-attacker { animation-name: battle-lifetime, battle-pawn-rush; }
+.battle-overlay[data-variant="pawn-strike"] .battle-attacker { animation-name: battle-lifetime, battle-pawn-strike; }
+.battle-overlay[data-variant="pawn-underdog"] .battle-attacker { animation-name: battle-lifetime, battle-pawn-underdog; }
+.battle-overlay[data-variant="knight-charge"] .battle-attacker { animation-name: battle-lifetime, battle-knight-charge; }
+.battle-overlay[data-variant="knight-vault"] .battle-attacker { animation-name: battle-lifetime, battle-knight-vault; }
+.battle-overlay[data-variant="knight-slash"] .battle-attacker { animation-name: battle-lifetime, battle-knight-slash; }
+.battle-overlay[data-variant="knight-bash"] .battle-attacker { animation-name: battle-lifetime, battle-knight-bash; }
+.battle-overlay[data-variant="bishop-blade"] .battle-attacker { animation-name: battle-lifetime, battle-bishop-blade; }
+.battle-overlay[data-variant="bishop-beam"] .battle-attacker { animation-name: battle-lifetime, battle-bishop-beam; }
+.battle-overlay[data-variant="bishop-eruption"] .battle-attacker { animation-name: battle-lifetime, battle-bishop-eruption; }
+.battle-overlay[data-variant="bishop-bind"] .battle-attacker { animation-name: battle-lifetime, battle-bishop-bind; }
+.battle-overlay[data-variant="rook-slam"] .battle-attacker { animation-name: battle-lifetime, battle-rook-slam; }
+.battle-overlay[data-variant="rook-charge"] .battle-attacker { animation-name: battle-lifetime, battle-rook-charge; }
+.battle-overlay[data-variant="rook-shock"] .battle-attacker { animation-name: battle-lifetime, battle-rook-shock; }
+.battle-overlay[data-variant="rook-blast"] .battle-attacker { animation-name: battle-lifetime, battle-rook-blast; }
+.battle-overlay[data-variant="queen-chains"] .battle-attacker { animation-name: battle-lifetime, battle-queen-chains; }
+.battle-overlay[data-variant="queen-blades"] .battle-attacker { animation-name: battle-lifetime, battle-queen-blades; }
+.battle-overlay[data-variant="queen-orbit"] .battle-attacker { animation-name: battle-lifetime, battle-queen-orbit; }
+.battle-overlay[data-variant="queen-burst"] .battle-attacker { animation-name: battle-lifetime, battle-queen-burst; }
+.battle-overlay[data-variant="king-sword"] .battle-attacker { animation-name: battle-lifetime, battle-king-sword; }
+.battle-overlay[data-variant="king-shield"] .battle-attacker { animation-name: battle-lifetime, battle-king-shield; }
+.battle-overlay[data-variant="king-command"] .battle-attacker { animation-name: battle-lifetime, battle-king-command; }
+.battle-overlay[data-variant="king-shock"] .battle-attacker { animation-name: battle-lifetime, battle-king-shock; }
+
+.battle-overlay[data-attacker="n"] .battle-attacker .piece-art__weapon,
+.battle-overlay[data-attacker="k"] .battle-attacker .piece-art__weapon,
+.battle-overlay[data-attacker="r"] .battle-attacker .piece-art__weapon { animation-name: battle-weapon-sweep; }
+.battle-overlay[data-attacker="b"] .battle-attacker .piece-art__weapon,
+.battle-overlay[data-attacker="q"] .battle-attacker .piece-art__weapon { animation-name: battle-staff; }
+.battle-overlay[data-variant="king-shield"] .battle-attacker .piece-art__shield { animation: battle-shield-bash var(--battle-duration) both; transform-origin: 35px 84px; }
+.battle-overlay[data-variant="bishop-beam"] .battle-trail,
+.battle-overlay[data-variant="rook-blast"] .battle-trail { stroke-width: 9; }
+.battle-overlay[data-variant="bishop-bind"] .battle-rune { stroke-dasharray: 8 5; }
+.battle-overlay[data-variant="queen-orbit"] .battle-impact-cross { stroke-dasharray: 12 12; }
+.battle-overlay[data-variant="queen-blades"] .battle-impact-cross { stroke-width: 9; }
+.battle-overlay[data-variant="king-command"] .battle-rune { display: block; }
+
+@keyframes battle-lifetime { 0%, 86% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes battle-vignette { 0%, 100% { opacity: 0; } 20%, 70% { opacity: 1; } }
+@keyframes battle-caption { 0%, 8% { opacity: 0; translate: 0 -7px; } 24%, 76% { opacity: 1; translate: 0 0; } 100% { opacity: 0; translate: 0 -3px; } }
+@keyframes battle-trail { 0% { stroke-dashoffset: 1; opacity: 0; } 25% { opacity: .9; } 100% { stroke-dashoffset: 0; opacity: .9; } }
+@keyframes battle-trail-fade { 0% { stroke-dashoffset: 0; opacity: .9; } 100% { stroke-dashoffset: -1; opacity: 0; } }
+@keyframes battle-impact { 0% { opacity: 0; transform: scale(.1); } 15% { opacity: 1; transform: scale(.75) rotate(-9deg); } 55% { opacity: .8; transform: scale(1.35) rotate(8deg); } 100% { opacity: 0; transform: scale(1.7) rotate(16deg); } }
+@keyframes battle-shard { 0% { opacity: 0; transform: translate(0, 0) scale(.3); } 12% { opacity: 1; } 70% { opacity: .7; transform: translate(var(--shard-x), var(--shard-y)) rotate(var(--shard-spin)) scale(.8); } 100% { opacity: 0; transform: translate(var(--shard-x), calc(var(--shard-y) + 35px)) rotate(var(--shard-spin)) scale(.2); } }
+@keyframes battle-combo-ring { 0% { opacity: 0; transform: scale(.3) rotate(0); } 20% { opacity: 1; } 100% { opacity: 0; transform: scale(1.5) rotate(35deg); } }
+@keyframes battle-signature { 0% { opacity: 0; transform: scale(.5); } 18% { opacity: 1; transform: scale(1); } 52% { opacity: .85; transform: scale(1.08); } 100% { opacity: 0; transform: scale(1.22); } }
+@keyframes battle-binding { 0% { opacity: 0; transform: scale(1.5) rotate(-28deg); } 18% { opacity: 1; transform: scale(1) rotate(0); } 62% { opacity: .8; transform: scale(.6) rotate(45deg); } 100% { opacity: 0; transform: scale(.2) rotate(90deg); } }
+@keyframes battle-orbits { 0% { opacity: 0; transform: scale(.5) rotate(-50deg); } 18% { opacity: 1; transform: scale(1) rotate(0); } 62% { opacity: .8; transform: scale(1.1) rotate(75deg); } 100% { opacity: 0; transform: scale(1.2) rotate(135deg); } }
+@keyframes battle-promotion-original { 0%, 62% { opacity: 1; } 72%, 100% { opacity: 0; } }
+@keyframes battle-promotion-arrive { 0%, 64% { opacity: 0; transform: scaleX(var(--battle-direction)) scale(.7); } 78% { opacity: 1; transform: scaleX(var(--battle-direction)) scale(1.12); } 89%, 100% { opacity: 1; transform: scaleX(var(--battle-direction)) scale(1); } }
+@keyframes battle-promotion-rays { 0%, 62% { opacity: 0; transform: scale(.5); } 76% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.3); } }
+@keyframes battle-cape { 0%, 100% { transform: skewX(0); } 25% { transform: skewX(-9deg); } 43% { transform: skewX(12deg); } 60% { transform: skewX(-7deg); } }
+@keyframes battle-weapon-thrust { 0%, 12% { transform: rotate(0); } 28% { transform: rotate(45deg) translate(-7px, 0); } 43% { transform: rotate(77deg) translate(4px, -10px); } 56% { transform: rotate(57deg); } 80%, 100% { transform: rotate(0); } }
+@keyframes battle-weapon-sweep { 0% { transform: rotate(0); } 24% { transform: rotate(-65deg); } 43% { transform: rotate(74deg); } 53% { transform: rotate(92deg); } 78%, 100% { transform: rotate(0); } }
+@keyframes battle-staff { 0% { transform: rotate(0); } 25% { transform: rotate(-18deg) translateY(-8px); } 43% { transform: rotate(34deg); } 58% { transform: rotate(15deg); } 85%, 100% { transform: rotate(0); } }
+@keyframes battle-shield-bash { 0%, 20% { transform: translateX(0); } 43% { transform: translateX(15px) rotate(18deg) scale(1.2); } 67%, 100% { transform: translateX(0); } }
+@keyframes battle-victim-fall { 0%, 39% { opacity: 1; transform: rotate(0); } 48% { opacity: 1; transform: translate(5%, -4%) rotate(17deg); } 78%, 100% { opacity: 0; transform: translate(20%, 26%) rotate(71deg) scale(.7); } }
+@keyframes battle-victim-fade { 0%, 43% { opacity: 1; } 85%, 100% { opacity: 0; } }
+@keyframes battle-base-fade { 0%, 41% { opacity: 1; } 68%, 100% { opacity: 0; } }
+@keyframes battle-shield-fall { 0%, 41% { transform: rotate(0); opacity: 1; } 81%, 100% { transform: translate(-29px, 28px) rotate(-110deg); opacity: 0; } }
+@keyframes battle-unseat { 0%, 39% { transform: translate(0, 0); opacity: 1; } 59% { transform: translate(-20px, -28px) rotate(-48deg); opacity: .9; } 87%, 100% { transform: translate(-44px, 18px) rotate(-105deg); opacity: 0; } }
+@keyframes battle-horse-fall { 0%, 42% { transform: rotate(0); opacity: 1; } 80%, 100% { transform: translate(17px, 15px) rotate(36deg); opacity: 0; } }
+@keyframes battle-dissolve { 0%, 40% { transform: translateY(0) scale(1); opacity: 1; filter: drop-shadow(0 0 0 transparent); } 51% { filter: drop-shadow(0 0 14px var(--battle-accent)); opacity: .9; } 82%, 100% { transform: translateY(-18%) scale(.75, 1.15); opacity: 0; filter: drop-shadow(0 0 22px var(--battle-accent)); } }
+@keyframes battle-fracture { 0%, 38% { opacity: 1; transform: translateX(0); } 42% { transform: translateX(-4%); } 46% { transform: translateX(5%); } 50% { transform: translateX(-3%); opacity: .8; } 73%, 100% { transform: translateY(23%) scale(1.17, .4); opacity: 0; } }
+@keyframes battle-crown-fall { 0%, 42% { opacity: 1; transform: translate(0, 0); } 62% { transform: translate(18px, -32px) rotate(70deg); opacity: 1; } 90%, 100% { transform: translate(38px, 27px) rotate(140deg); opacity: 0; } }
+
+/* Each role has four authored movement sequences; weapon and victim articulation layer on top. */
+@keyframes battle-pawn-thrust {
+  0%, 10% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  31% { transform: translate(calc(var(--battle-hit-x) - 15%), var(--battle-hit-y)) rotate(var(--battle-counter-tilt)); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(var(--battle-tilt)) scale(1.06); }
+  60% { transform: translate(calc(var(--battle-hit-x) - 6%), var(--battle-hit-y)); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-pawn-rush {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  13% { transform: translate(var(--battle-start-x), calc(var(--battle-start-y) - 8%)) rotate(-9deg); }
+  30% { transform: translate(calc(var(--battle-hit-x) - 22%), calc(var(--battle-hit-y) - 9%)) rotate(9deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) scale(1.12, .91); }
+  62% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 8%)); }
+  84%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-pawn-strike {
+  0%, 8% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  28% { transform: translate(calc(var(--battle-hit-x) - 24%), calc(var(--battle-hit-y) - 16%)) rotate(-24deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(21deg); }
+  58% { transform: translate(calc(var(--battle-hit-x) + 8%), calc(var(--battle-hit-y) - 4%)) rotate(-8deg); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-pawn-underdog {
+  0%, 10% { transform: translate(var(--battle-start-x), var(--battle-start-y)) scale(.95); }
+  30% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 46%)) rotate(-20deg) scale(1.08); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) scale(1.16, .9); }
+  58% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 10%)) scale(1.08); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-knight-charge {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  22% { transform: translate(calc(var(--battle-hit-x) - 35%), calc(var(--battle-hit-y) - 9%)) rotate(-8deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(12deg) scale(1.1); }
+  56% { transform: translate(calc(var(--battle-hit-x) + 20%), calc(var(--battle-hit-y) - 5%)); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-knight-vault {
+  0%, 8% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  27% { transform: translate(calc(var(--battle-hit-x) - 13%), calc(var(--battle-hit-y) - 63%)) rotate(-17deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(14deg) scale(1.1, .88); }
+  57% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 12%)); }
+  84%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-knight-slash {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  27% { transform: translate(calc(var(--battle-hit-x) - 40%), calc(var(--battle-hit-y) - 20%)) rotate(-20deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(12deg); }
+  59% { transform: translate(calc(var(--battle-hit-x) + 32%), calc(var(--battle-hit-y) - 22%)) rotate(-7deg); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-knight-bash {
+  0%, 8% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  29% { transform: translate(calc(var(--battle-hit-x) - 18%), calc(var(--battle-hit-y) - 24%)) rotate(-25deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(19deg) scale(1.16); }
+  54% { transform: translate(calc(var(--battle-hit-x) - 10%), var(--battle-hit-y)) rotate(-10deg); }
+  83%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-bishop-blade {
+  0%, 10% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  29% { transform: translate(calc(var(--battle-hit-x) - 26%), calc(var(--battle-hit-y) - 17%)) rotate(-19deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(22deg); }
+  61% { transform: translate(calc(var(--battle-hit-x) + 18%), calc(var(--battle-hit-y) - 10%)) rotate(-6deg); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-bishop-beam {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  27% { transform: translate(var(--battle-start-x), calc(var(--battle-start-y) - 8%)) scale(1.06); }
+  43% { transform: translate(var(--battle-start-x), var(--battle-start-y)) rotate(-6deg); }
+  64% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 12%)); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-bishop-eruption {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  27% { transform: translate(calc(var(--battle-hit-x) - 8%), calc(var(--battle-hit-y) - 35%)) scale(.93); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) scale(1.12, .91); }
+  63% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 14%)); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-bishop-bind {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  28% { transform: translate(calc(var(--battle-hit-x) - 22%), calc(var(--battle-hit-y) - 16%)) rotate(-8deg); }
+  43% { transform: translate(calc(var(--battle-hit-x) - 13%), calc(var(--battle-hit-y) - 10%)) scale(1.09); }
+  62% { transform: translate(calc(var(--battle-hit-x) + 12%), calc(var(--battle-hit-y) - 9%)) rotate(6deg); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-rook-slam {
+  0%, 12% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  29% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 32%)) rotate(-14deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) scale(1.18, .85); }
+  56% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 4%)); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-rook-charge {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  17% { transform: translate(calc(var(--battle-start-x) - 9%), var(--battle-start-y)) rotate(-8deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(14deg) scale(1.15); }
+  56% { transform: translate(calc(var(--battle-hit-x) + 16%), var(--battle-hit-y)) rotate(9deg); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-rook-shock {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  25% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 18%)); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) scale(1.22, .81); }
+  48% { transform: translate(calc(var(--battle-hit-x) - 4%), var(--battle-hit-y)); }
+  53% { transform: translate(calc(var(--battle-hit-x) + 4%), var(--battle-hit-y)); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-rook-blast {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  28% { transform: translate(var(--battle-start-x), var(--battle-start-y)) scale(1.04); }
+  43% { transform: translate(calc(var(--battle-start-x) - 12%), var(--battle-start-y)) rotate(-9deg); }
+  62% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-queen-chains {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  30% { transform: translate(calc(var(--battle-hit-x) - 28%), calc(var(--battle-hit-y) - 15%)) rotate(-8deg); }
+  43% { transform: translate(calc(var(--battle-hit-x) - 15%), var(--battle-hit-y)) rotate(10deg); }
+  61% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 15%)); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-queen-blades {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  27% { transform: translate(calc(var(--battle-hit-x) - 24%), calc(var(--battle-hit-y) - 19%)) rotate(-20deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(20deg); }
+  55% { transform: translate(calc(var(--battle-hit-x) + 20%), calc(var(--battle-hit-y) - 16%)) rotate(-18deg); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-queen-orbit {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  26% { transform: translate(calc(var(--battle-hit-x) - 30%), calc(var(--battle-hit-y) - 30%)) rotate(-16deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(12deg); }
+  57% { transform: translate(calc(var(--battle-hit-x) + 30%), calc(var(--battle-hit-y) - 23%)) rotate(18deg); }
+  72% { transform: translate(calc(var(--battle-hit-x) + 9%), calc(var(--battle-hit-y) - 35%)) rotate(-9deg); }
+  90%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-queen-burst {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  27% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 28%)) scale(.88); }
+  43% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 10%)) scale(1.2); }
+  61% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 19%)) scale(1.04); }
+  87%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-king-sword {
+  0%, 8% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  27% { transform: translate(calc(var(--battle-hit-x) - 19%), calc(var(--battle-hit-y) - 12%)) rotate(-18deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(20deg); }
+  59% { transform: translate(calc(var(--battle-hit-x) + 9%), var(--battle-hit-y)) rotate(-6deg); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-king-shield {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  28% { transform: translate(calc(var(--battle-hit-x) - 22%), var(--battle-hit-y)) rotate(-12deg); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) rotate(16deg) scale(1.12); }
+  58% { transform: translate(calc(var(--battle-hit-x) - 8%), var(--battle-hit-y)); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-king-command {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  29% { transform: translate(calc(var(--battle-hit-x) - 13%), var(--battle-hit-y)) scale(1.05); }
+  43% { transform: translate(calc(var(--battle-hit-x) - 8%), calc(var(--battle-hit-y) - 12%)) scale(1.1); }
+  62% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) scale(1.04); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes battle-king-shock {
+  0% { transform: translate(var(--battle-start-x), var(--battle-start-y)); }
+  29% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 22%)) scale(.95); }
+  43% { transform: translate(var(--battle-hit-x), var(--battle-hit-y)) scale(1.18, .91); }
+  60% { transform: translate(var(--battle-hit-x), calc(var(--battle-hit-y) - 7%)) scale(1.04); }
+  86%, 100% { transform: translate(0, 0); }
+}
+
+.battle-motion-reduced .battle-unit,
+.battle-motion-reduced .battle-trail,
+.battle-motion-reduced .battle-debris,
+.battle-motion-reduced .battle-impact-cross,
+.battle-motion-reduced .battle-rune,
+.battle-motion-reduced .battle-ring-outer,
+.battle-motion-reduced .battle-combo-ring { display: none; }
+.battle-motion-reduced .battle-signature,
+.battle-motion-reduced .battle-promotion-finish { display: none; }
+.battle-motion-reduced .battle-impact,
+.battle-motion-reduced .battle-caption,
+.battle-motion-reduced .battle-vignette { animation-name: battle-reduced; animation-delay: 0ms; animation-duration: var(--battle-duration); }
+.battle-motion-reduced .battle-impact-glow { opacity: .35; }
+@keyframes battle-reduced { 0%, 100% { opacity: 0; } 30%, 65% { opacity: 1; } }
+
+@media (max-width: 480px) {
+  .battle-caption { padding: 5px 14px 7px; }
+  .battle-caption-kicker { font-size: 7px; }
+  .battle-caption strong { font-size: 16px; }
+}

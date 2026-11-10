@@ -1,0 +1,29 @@
+.special-move-overlay { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 29; }
+.special-move-overlay * { pointer-events: none; }
+.special-move-effects { width: 100%; height: 100%; position: absolute; inset: 0; overflow: visible; }
+.special-move-sigil { animation: special-move-sigil var(--special-duration) both; }
+.special-move-halo { fill: none; stroke: var(--special-accent); stroke-width: 4; }
+.special-move-outer { fill: none; stroke: var(--special-accent); stroke-width: 1.5; stroke-dasharray: 3 10; opacity: .8; }
+.special-move-star { fill: var(--special-accent); opacity: .2; }
+.special-move-warning { fill: none; stroke: #ffc2a5; stroke-width: 4; stroke-linecap: round; }
+.special-move-castle-path { fill: none; stroke: var(--special-accent); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 1; animation: special-move-path var(--special-duration) both; }
+.special-move-rook-path { stroke-width: 2; }
+.special-move-rays { fill: none; stroke: var(--special-accent); stroke-width: 3; animation: special-move-rays var(--special-duration) both; }
+.special-move-character { position: absolute; width: 17%; height: 20.4%; margin-left: -8.5%; margin-top: -14%; }
+.special-move-character .piece-art { position: absolute; inset: 0; width: 100%; height: 100%; }
+.special-move-pawn { animation: special-move-pawn var(--special-duration) both; }
+.special-move-promoted { animation: special-move-promote var(--special-duration) both; filter: drop-shadow(0 0 10px var(--special-accent)); }
+.special-move-caption { position: absolute; left: 50%; top: 3%; transform: translateX(-50%); min-width: 180px; max-width: 90%; padding: 7px 25px 9px; text-align: center; background: linear-gradient(90deg, #111b2700, #111b27eb 16%, #111b27eb 84%, #111b2700); animation: special-move-caption var(--special-duration) both; }
+.special-move-caption span { display: block; text-transform: uppercase; letter-spacing: .18em; color: var(--special-accent); font: 650 9px/1.5 system-ui, sans-serif; }
+.special-move-caption strong { display: block; color: #f5e9d2; font: 400 clamp(15px, 2vw, 22px)/1.3 Georgia, serif; }
+@keyframes special-move-sigil { 0% { opacity: 0; transform: scale(.65); } 30% { opacity: 1; transform: scale(1); } 65% { opacity: .8; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.35); } }
+@keyframes special-move-path { 0% { opacity: 0; stroke-dashoffset: 1; } 20% { opacity: 1; } 60% { opacity: 1; stroke-dashoffset: 0; } 100% { opacity: 0; stroke-dashoffset: -.4; } }
+@keyframes special-move-rays { 0%, 20% { opacity: 0; } 45% { opacity: .9; } 100% { opacity: 0; } }
+@keyframes special-move-pawn { 0%, 17% { opacity: 1; transform: scale(1); } 42%, 100% { opacity: 0; transform: translateY(-9%) scale(.7); } }
+@keyframes special-move-promote { 0%, 28% { opacity: 0; transform: translateY(8%) scale(.7); } 62% { opacity: 1; transform: scale(1.12); } 84% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1); } }
+@keyframes special-move-caption { 0% { opacity: 0; translate: 0 -4px; } 25%, 70% { opacity: 1; translate: 0 0; } 100% { opacity: 0; translate: 0 0; } }
+.special-move-motion-reduced .special-move-character,
+.special-move-motion-reduced .special-move-castle-path,
+.special-move-motion-reduced .special-move-rays { display: none; }
+.special-move-motion-reduced .special-move-sigil { animation-name: special-move-fade; }
+@keyframes special-move-fade { 0%, 100% { opacity: 0; } 30%, 65% { opacity: 1; } }

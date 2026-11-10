@@ -1,0 +1,122 @@
+.movement-overlay { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 27; }
+.movement-overlay * { pointer-events: none; }
+.movement-unit { position: absolute; width: 12.5%; height: 12.5%; margin: -6.25% 0 0 -6.25%; transform-origin: 50% 85%; animation-duration: var(--movement-duration); animation-timing-function: linear; animation-fill-mode: both; will-change: transform; }
+.movement-unit > .piece-art { display: block; width: 100%; height: 100%; transform: scaleX(var(--movement-facing)); }
+.movement-unit .piece-art__base { animation: movement-pedestal var(--movement-duration) both; }
+.movement-unit .piece-art__leg { animation: movement-step var(--movement-gait-duration) ease-in-out infinite; }
+.movement-unit .piece-art__leg--right { animation-delay: calc(var(--movement-gait-duration) * -.5); }
+.movement-unit .piece-art__arm { animation: movement-arm var(--movement-gait-duration) ease-in-out infinite; }
+.movement-unit .piece-art__arm--left { animation-delay: calc(var(--movement-gait-duration) * -.5); }
+.movement-unit .piece-art__weapon { animation: movement-weapon var(--movement-duration) ease-in-out both; }
+.movement-unit .piece-art__cape { animation: movement-cape var(--movement-duration) ease-in-out both; transform-origin: 60px 60px; }
+.movement-overlay[data-gait="gallop"] .piece-art__rider { animation: movement-rider var(--movement-duration) both; transform-origin: 50px 70px; }
+.movement-overlay[data-gait="gallop"] .piece-art__leg { animation-name: movement-hoof; }
+.movement-overlay[data-gait="float"] .piece-art__leg { animation: none; }
+.movement-overlay[data-gait="float"] .piece-art__magic { animation: movement-magic var(--movement-duration) both; }
+.movement-overlay[data-gait="stomp"] .piece-art__leg { animation-name: movement-stomp; }
+.movement-overlay[data-gait="elegant"] .piece-art__leg,
+.movement-overlay[data-gait="stately"] .piece-art__leg { animation-name: movement-small-step; }
+.movement-overlay[data-phase="anticipation"] .piece-art__leg,
+.movement-overlay[data-phase="anticipation"] .piece-art__arm { animation-play-state: paused; }
+.movement-overlay[data-phase="settle"] .piece-art__leg,
+.movement-overlay[data-phase="settle"] .piece-art__arm { animation: none; }
+.movement-ground { position: absolute; inset: 0; width: 100%; height: 100%; }
+.movement-footprint { fill: var(--movement-accent); animation: movement-footprint var(--movement-travel-duration) both; }
+.movement-arrival { fill: none; stroke: var(--movement-accent); stroke-width: 1.5; animation: movement-arrival var(--movement-settle-duration) var(--movement-settle-at) both; }
+.movement-overlay[data-effect="glimmer"] .movement-footprint { filter: drop-shadow(0 0 3px var(--movement-accent)); }
+@keyframes movement-lifetime { 0%, 93% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes movement-pedestal { 0%, 100% { opacity: 1; } 12%, 80% { opacity: .12; } }
+@keyframes movement-step { 0%, 100% { transform: rotate(-16deg) translateY(-1px); } 50% { transform: rotate(18deg) translateY(-4px); } }
+@keyframes movement-small-step { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(11deg) translateY(-2px); } }
+@keyframes movement-stomp { 0%, 100% { transform: rotate(-10deg); } 35% { transform: rotate(15deg) translateY(-5px); } 65% { transform: rotate(5deg); } }
+@keyframes movement-hoof { 0%, 100% { transform: rotate(-22deg); } 50% { transform: rotate(29deg) translateY(-7px); } }
+@keyframes movement-arm { 0%, 100% { transform: rotate(5deg); } 50% { transform: rotate(-7deg); } }
+@keyframes movement-weapon { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-7deg); } 60% { transform: rotate(6deg); } 82% { transform: rotate(-3deg); } }
+@keyframes movement-cape { 0%, 100% { transform: skewX(0); } 25% { transform: skewX(-8deg); } 65% { transform: skewX(-3deg); } 84% { transform: skewX(4deg); } }
+@keyframes movement-rider { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-5px) rotate(-6deg); } 77% { transform: translateY(3px) rotate(5deg); } }
+@keyframes movement-magic { 0%, 100% { opacity: .6; } 45% { opacity: 1; filter: drop-shadow(0 0 5px var(--movement-accent)); } }
+@keyframes movement-footprint { 0% { opacity: 0; } 15% { opacity: .34; } 80%, 100% { opacity: 0; } }
+@keyframes movement-arrival { 0% { opacity: .45; } 100% { opacity: 0; } }
+@keyframes movement-pawn-walk {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  28% { transform: translate(calc(var(--movement-start-x) * .75), calc(var(--movement-start-y) * .75 - 3%)); }
+  48% { transform: translate(calc(var(--movement-start-x) * .5), calc(var(--movement-start-y) * .5 + 1%)); }
+  66% { transform: translate(calc(var(--movement-start-x) * .25), calc(var(--movement-start-y) * .25 - 3%)); }
+  84%, 100% { transform: translate(0, 0); }
+}
+@keyframes movement-pawn-march {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  30% { transform: translate(calc(var(--movement-start-x) * .7), calc(var(--movement-start-y) * .7 - 4%)) rotate(-2deg); }
+  54% { transform: translate(calc(var(--movement-start-x) * .4), calc(var(--movement-start-y) * .4 - 1%)) rotate(2deg); }
+  78% { transform: translate(0, -2%) scale(1.02, .98); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes movement-knight-hop {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  46% { transform: translate(calc(var(--movement-start-x) * .5), calc(var(--movement-start-y) * .5 - 52%)) rotate(-6deg); }
+  80% { transform: translate(0, 2%) scale(1.04, .95); }
+  90% { transform: translate(0, -3%); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes movement-knight-vault {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  33% { transform: translate(calc(var(--movement-start-x) * .7), calc(var(--movement-start-y) * .7 - 43%)) rotate(-9deg); }
+  55% { transform: translate(calc(var(--movement-start-x) * .35), calc(var(--movement-start-y) * .35 - 57%)) rotate(3deg); }
+  82% { transform: translate(0, 2%) scale(1.05, .94); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes movement-bishop-glide {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  38% { transform: translate(calc(var(--movement-start-x) * .65), calc(var(--movement-start-y) * .65 - 11%)); }
+  68% { transform: translate(calc(var(--movement-start-x) * .2), calc(var(--movement-start-y) * .2 - 7%)); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes movement-bishop-levitate {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  35% { transform: translate(calc(var(--movement-start-x) * .7), calc(var(--movement-start-y) * .7 - 19%)) rotate(-3deg); }
+  65% { transform: translate(calc(var(--movement-start-x) * .25), calc(var(--movement-start-y) * .25 - 16%)) rotate(3deg); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes movement-rook-stomp {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  31% { transform: translate(calc(var(--movement-start-x) * .7), calc(var(--movement-start-y) * .7 - 6%)) rotate(-2deg); }
+  44% { transform: translate(calc(var(--movement-start-x) * .5), calc(var(--movement-start-y) * .5 + 2%)) scale(1.02, .98); }
+  66% { transform: translate(calc(var(--movement-start-x) * .2), calc(var(--movement-start-y) * .2 - 5%)) rotate(2deg); }
+  84%, 100% { transform: translate(0, 0); }
+}
+@keyframes movement-rook-roll {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  32% { transform: translate(calc(var(--movement-start-x) * .7), calc(var(--movement-start-y) * .7)) rotate(-4deg); }
+  58% { transform: translate(calc(var(--movement-start-x) * .35), calc(var(--movement-start-y) * .35)) rotate(4deg); }
+  82% { transform: translate(0, 1%) rotate(-2deg); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes movement-queen-sweep {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  40% { transform: translate(calc(var(--movement-start-x) * .6 + 7%), calc(var(--movement-start-y) * .6 - 8%)) rotate(-3deg); }
+  70% { transform: translate(calc(var(--movement-start-x) * .15 + 3%), calc(var(--movement-start-y) * .15 - 4%)) rotate(2deg); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes movement-queen-stride {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  32% { transform: translate(calc(var(--movement-start-x) * .7), calc(var(--movement-start-y) * .7 - 3%)); }
+  57% { transform: translate(calc(var(--movement-start-x) * .35), calc(var(--movement-start-y) * .35 - 1%)); }
+  82% { transform: translate(0, -2%); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes movement-king-walk {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  32% { transform: translate(calc(var(--movement-start-x) * .7), calc(var(--movement-start-y) * .7 - 3%)) rotate(-1.5deg); }
+  58% { transform: translate(calc(var(--movement-start-x) * .35), calc(var(--movement-start-y) * .35 - 2%)) rotate(1.5deg); }
+  84%, 100% { transform: translate(0, 0); }
+}
+@keyframes movement-king-march {
+  0%, 8% { transform: translate(var(--movement-start-x), var(--movement-start-y)); }
+  28% { transform: translate(calc(var(--movement-start-x) * .75), calc(var(--movement-start-y) * .75 - 4%)); }
+  50% { transform: translate(calc(var(--movement-start-x) * .45), calc(var(--movement-start-y) * .45 + 1%)); }
+  73% { transform: translate(calc(var(--movement-start-x) * .12), calc(var(--movement-start-y) * .12 - 3%)); }
+  86%, 100% { transform: translate(0, 0); }
+}
+.movement-motion-reduced .movement-unit,
+.movement-motion-reduced .movement-footprint { display: none; }
+.movement-motion-reduced .movement-arrival { animation-delay: 0ms; animation-duration: var(--movement-duration); }
