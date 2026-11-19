@@ -79,3 +79,11 @@ Clean installation passed. Full local verification passed: 107 game tests, all 5
 Independent complete-game validation covered four games across both colors/opening rules: 275 moves, 98 captures, 16 finishers, 20 interrupted-pair reloads, 126 exact promised moves and 736 validated saves. Details and limits are in docs/verification-v1.1.0.json.
 
 Release publication proceeds through release/battlefield-finishers, a reviewed public change request, successful hosted checks, a merge preserving all history, and v1.1.0 downloadable packages. No website hosting is included. Public source/checks: https://github.com/devSingh29/SquadChess- ; release: https://github.com/devSingh29/SquadChess-/releases/tag/v1.1.0 .
+
+## Usability follow-up — 2026-11-18
+
+### Saved-match controls
+
+Deleting the loaded match now cancels outstanding game work, clears the live reference before draining queued saves, and removes the stored copy exactly once. Failed deletion restores the paused match only if a newer game has not replaced it. Delayed saved-game reads cannot reopen a deleted match. Deleting another archived match leaves the current plan intact.
+
+Home now distinguishes Continue match from Review finished match, shows the selected army/move count/clock choice, and exposes the selected army to assistive software. Added seven controller checks and three browser scenarios for deletion, exact-plan preservation, and finished-game review. All 114 game checks, source checks, and the three focused browser scenarios pass. Independent review caught and verified the delayed-load fix. The public check suite runs before merging this checkpoint.
