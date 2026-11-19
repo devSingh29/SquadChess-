@@ -87,3 +87,15 @@ Release publication proceeds through release/battlefield-finishers, a reviewed p
 Deleting the loaded match now cancels outstanding game work, clears the live reference before draining queued saves, and removes the stored copy exactly once. Failed deletion restores the paused match only if a newer game has not replaced it. Delayed saved-game reads cannot reopen a deleted match. Deleting another archived match leaves the current plan intact.
 
 Home now distinguishes Continue match from Review finished match, shows the selected army/move count/clock choice, and exposes the selected army to assistive software. Added seven controller checks and three browser scenarios for deletion, exact-plan preservation, and finished-game review. All 114 game checks, source checks, and the three focused browser scenarios pass. Independent review caught and verified the delayed-load fix. The public check suite runs before merging this checkpoint.
+
+The saved-match checkpoint is public in PR #8, merged as `6092566` after the complete hosted checks passed (run `44452102374`). The original 35 browser game scenarios also passed locally alongside the three new saved-match scenarios.
+
+### Planning, pause, keyboard, and replay controls
+
+Both promised moves now remain in the phone confirmation area, with direct inspection of either position and a route to the complete explanation. The short-phone board reserves room for that area. Shared category controls support arrows, Home, End, and one Tab stop. Board focus announces the piece, selection, and legal destinations; dialogs have explicit accessible names. Movement and thinking descriptions match the current activity.
+
+Undo from a paused or error-stopped timed game stays paused. Pausing a proposed combination displays the accepted board while preserving the exact proposal for Resume. Paused players no longer appear active. History replays return to History without replacing the loaded match, and clocks follow recorded move snapshots. Replay controls disable unavailable steps and empty playback. Hints, revisions, rematches, Continue, and imports reset stale view choices.
+
+Independent review found no remaining material blockers. Verification: 118 game checks, all 68 development-browser scenarios, both packaged-game scenarios, source checks, and the release build pass. The full browser run initially found four expectations for the previous import wording; the message now keeps the established import confirmation and clearly identifies a finished match. Finisher setup also respects the intentionally disabled first-move control. All 13 finisher scenarios were rerun successfully after those adjustments. No rules, saved formats, character art, or attack choreography changed. Desktop and 360×640 phone screenshots are in `docs/screenshots/usability-2026-11-18/`.
+
+This checkpoint publishes through a second reviewed change request and the full hosted check suite. The local game remains available at http://localhost:5173/.

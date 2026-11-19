@@ -311,9 +311,10 @@ export class GameController {
     if (index < 0) return;
     this.cancel(); const first = match.events[index];
     const position = index === 0 ? match.initialPosition : match.events[index - 1].positionAfter;
+    const phase = ['paused', 'error'].includes(match.phase) ? 'paused' : 'planning';
     this.publish({ presentation: null });
     this.update({ position, events: match.events.slice(0, index), revision: match.revision + 1, clocks: first.clocksBefore || match.clocks,
-      phase: 'planning', preview: null, lockedMove: null, error: null, assisted: { ...match.assisted, undos: match.assisted.undos + 1 } });
+      phase, preview: null, lockedMove: null, error: null, assisted: { ...match.assisted, undos: match.assisted.undos + 1 } });
     this.lastTick = now();
   };
   resign = () => {

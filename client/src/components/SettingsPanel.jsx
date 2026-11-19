@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { TabList } from './TabList';
 import { PieceArt } from './PieceArt';
 import { MovementOverlay } from './MovementOverlay';
 import { BOARD_THEMES } from '../game/themes';
@@ -22,7 +23,7 @@ export function SettingsPanel({ preferences, onChange, onGallery, onSetup, onDon
   function chooseSection(id) { cancelSound.current?.(); setPreview(null); setSection(id); }
   return <div className="settings-layout">
     <nav className="settings-navigation" aria-label="Settings sections">
-      <div role="tablist" aria-label="Setting categories">{[['board', 'Board & pieces'], ['animation', 'Animations'], ['sound', 'Sound']].map(([id, label]) => <button key={id} role="tab" id={`settings-${id}-tab`} aria-controls={`settings-${id}`} aria-selected={section === id} onClick={() => chooseSection(id)}>{label}</button>)}</div>
+      <TabList label="Setting categories" orientation="responsive" value={section} onChange={chooseSection} tabs={[['board', 'Board & pieces'], ['animation', 'Animations'], ['sound', 'Sound']].map(([id, label]) => ({ id, label, tabId: `settings-${id}-tab`, panelId: `settings-${id}` }))} />
       <button onClick={onSetup}>Match setup <span>↗</span></button>
     </nav>
     <div className="settings-content">

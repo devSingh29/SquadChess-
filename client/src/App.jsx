@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { GameController, DEFAULT_CONFIG, DEFAULT_PREFERENCES } from './game/controller';
@@ -15,7 +15,7 @@ import { specialMoveDetails, battleSpec } from './game/battles';
 import { Icon } from './components/Icon';
 import { HomeScreen } from './components/HomeScreen';
 import { MatchPanel } from './components/MatchPanel';
-import { PIECE_NAMES, formatClock, getPlayer } from './game/viewLabels';
+import { PIECE_NAMES, formatClock, getPlayer, clocksAtReplayMove } from './game/viewLabels';
 import { PlannerOverlay } from './components/PlannerOverlay';
 import { playMoveSound, unlockAudio } from './game/audio';
 import './App.css';
@@ -29,8 +29,9 @@ function preferencesAtStart() {
 function download(text, name, type = 'application/json') { const url = URL.createObjectURL(new Blob([text], { type })); const link = document.createElement('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 function Modal({ title, children, onClose, className = '' }) {
   const ref = useRef(null);
+  const titleId = useId();
   useEffect(() => { const element = ref.current; element?.showModal(); return () => element?.close(); }, []);
-  return <dialog ref={ref} className={`modal ${className}`} onCancel={onClose} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>{title && <header><h2>{title}</h2><button className="icon-button" onClick={onClose} aria-label="Close dialog"><Icon name="close" /></button></header>}{children}</dialog>;
+  return <dialog ref={ref} aria-labelledby={title ? titleId : undefined} aria-label={title ? undefined : 'Battle gallery'} className={`modal ${className}`} onCancel={onClose} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>{title && <header><h2 id={titleId}>{title}</h2><button className="icon-button" onClick={onClose} aria-label="Close dialog"><Icon name="close" /></button></header>}{children}</dialog>;
 }
 
 function App() {
@@ -117,19 +118,19 @@ function App() {
   }
   function navigate(next) { openRequest.current += 1; window.scrollTo(0, 0); if (next !== 'game') controller.pause(); if (next !== 'replay') setReplay(current => current ? { ...current, playing: false, event: null } : current); setScreen(next); setSelected(null); if (next === 'history') refreshHistory(); }
   function startGame() { openRequest.current += 1; setMatchTab('plan'); window.scrollTo(0, 0); unlockAudio(); setSelected(null); setPromotion(null); setFlipped(false); setPreviewStep(1); controller.start(config); setScreen('game'); }
-  function continueGame(game = match || saved) { openRequest.current += 1; setMatchTab('plan'); window.scrollTo(0, 0); if (!game) return; if (game !== match) controller.load(game); setScreen('game'); setSelected(null); setFlipped(false); }
+  function continueGame(game = match || saved) { openRequest.current += 1; setMatchTab('plan'); window.scrollTo(0, 0); if (!game) return; if (game !== match) controller.load(game); setScreen('game'); setSelected(null); setKeyboardSquare(null); setPromotion(null); setFlipped(false); setPreviewStep(1); }
   function changeConfig(next) { setConfig(next); changePreferences({ matchDefaults: next }); }
   function changePreferences(patch) { const next = { ...preferences, ...patch }; setPreferences(next); try { savePreferences(next); } catch (error) { setMessage(error.message); } }
   function finishReplayEvent(id) { setReplay(current => current?.event?.id === id ? { ...current, event: null } : current); }
   function openModal(name) { if (['settings', 'help', 'resign'].includes(name)) controller.pause(); setReplay(current => current ? { ...current, playing: false, event: null } : current); setModal(name); }
   async function importFile(event) {
     const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
-    try { const game = await importMatch(await file.text()); controller.load(game); setSaved(game); setScreen('game'); setMessage('Game imported. Resume whenever you’re ready.'); } catch (error) { setMessage(error.message); }
+    try { const game = await importMatch(await file.text()); continueGame(game); setSaved(game); setMessage(game.position.result ? 'Game imported. This match is finished; review its result or watch the replay.' : 'Game imported. Resume whenever you’re ready.'); } catch (error) { setMessage(error.message); }
   }
   async function openSaved(id, replayOnly = false) {
     const request = ++openRequest.current;
     try { const game = await loadMatch(id); if (request !== openRequest.current) return; if (!game) throw new Error('This saved game is no longer available.');
-      if (replayOnly || game.position.result) { controller.pause(); setReplay({ match: game, index: 0, playing: false, event: null }); setScreen('replay'); }
+      if (replayOnly || game.position.result) { controller.pause(); setReplay({ match: game, index: 0, playing: false, event: null, returnTo: 'history' }); setScreen('replay'); }
       else continueGame(game);
     } catch (error) { if (request === openRequest.current) setMessage(error.message); }
   }
@@ -138,7 +139,7 @@ function App() {
   const orientation = (humanColor === 'b') !== flipped ? 'black' : 'white';
   const initial = createPosition();
   const livePosition = activeMatch?.position || initial;
-  const preview = screen === 'game' ? match?.preview : null;
+  const preview = screen === 'game' && !['paused', 'error'].includes(match?.phase) ? match?.preview : null;
   const replayPosition = replay ? replay.index === 0 ? replay.match.initialPosition : replay.match.events[replay.index - 1].positionAfter : null;
   const shownPosition = screen === 'replay' ? replayPosition : preview ? previewStep === 2 && preview.afterSecond ? preview.afterSecond : preview.afterFirst : livePosition;
   const shownFen = shownPosition?.fen || initial.fen;
@@ -149,6 +150,7 @@ function App() {
   const canMove = screen === 'game' && controller.isHumanPlanning() && !preview && !hinting;
   const actingSeat = screen === 'game' && presentation ? presentation.seat : `${livePosition.team}${livePosition.slot + 1}`;
   const lastMove = screen === 'replay' ? replay?.match.events[replay.index - 1] : match?.events.at(-1);
+  const displayedClocks = screen === 'replay' ? clocksAtReplayMove(activeMatch, replay.index) : activeMatch?.clocks;
   const availableMoves = canMove && selected ? legalMoves(livePosition, selected) : [];
   let checkedSquare = null;
   try { if (shownPosition && isInCheck(shownPosition)) checkedSquare = new Chess(shownFen).board().flat().find(p => p?.type === 'k' && p.color === shownPosition.team)?.square; } catch { /* Invalid imports are rejected before display. */ }
@@ -175,7 +177,7 @@ function App() {
   }
   function boardKey(event) {
     if (event.key === 'Escape') { setSelected(null); setKeyboardSquare(null); controller.cancelPreview(); return; }
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectSquare(keyboardSquare || (humanColor === 'w' ? 'e2' : 'e7')); return; }
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); const square = keyboardSquare || (humanColor === 'w' ? 'e2' : 'e7'); setKeyboardSquare(square); selectSquare(square); return; }
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
     event.preventDefault();
     const square = keyboardSquare || (humanColor === 'w' ? 'e2' : 'e7');
@@ -184,9 +186,20 @@ function App() {
     const rank = Math.max(1, Math.min(8, Number(square[1]) + (event.key === 'ArrowUp' ? sign : event.key === 'ArrowDown' ? -sign : 0)));
     setKeyboardSquare(`${String.fromCharCode(97 + file)}${rank}`);
   }
+  function boardAnnouncement() {
+    if (!keyboardSquare) return '';
+    const piece = new Chess(shownFen).get(keyboardSquare);
+    const description = `${keyboardSquare.toUpperCase()}, ${piece ? `${piece.color === 'w' ? 'White' : 'Black'} ${PIECE_NAMES[piece.type].toLowerCase()}` : 'empty'}.`;
+    if (canMove && selected === keyboardSquare) {
+      const destinations = [...new Set(availableMoves.map(move => move.to.toUpperCase()))];
+      return `${description} Selected. ${destinations.length ? `Legal destinations: ${destinations.join(', ')}.` : 'No legal moves.'}`;
+    }
+    if (canMove && selected && availableMoves.some(move => move.to === keyboardSquare)) return `${description} Legal destination for ${selected.toUpperCase()}. Press Enter to preview this move.`;
+    return `${description}${canMove && piece?.color === humanColor ? ' Press Enter to select.' : ''}`;
+  }
   function renderBoard(decorative = false) {
-    return <div className={`board-shell ${preview ? 'is-preview' : ''}`}><span className="sr-only" aria-live="polite">{!decorative && keyboardSquare ? `${keyboardSquare.toUpperCase()}${selected === keyboardSquare ? ' selected' : ''}` : ''}</span><div className="board-corner tl" /><div className="board-corner tr" /><div className="board-corner bl" /><div className="board-corner br" />
-      <div className="board-surface" tabIndex={decorative ? -1 : 0} role="group" aria-label="Chessboard. Use arrow keys to select a square, Enter to select a piece or destination, Escape to cancel." onKeyDown={boardKey}>
+    return <div className={`board-shell ${preview ? 'is-preview' : ''}`}><span className="sr-only board-announcement" aria-live="polite" aria-atomic="true">{!decorative ? boardAnnouncement() : ''}</span><div className="board-corner tl" /><div className="board-corner tr" /><div className="board-corner bl" /><div className="board-corner br" />
+      <div className="board-surface" tabIndex={decorative ? -1 : 0} role="group" aria-label="Chessboard. Use arrow keys to select a square, Enter to select a piece or destination, Escape to cancel." onKeyDown={decorative ? undefined : boardKey} onFocus={event => { if (!decorative && event.target === event.currentTarget && !keyboardSquare) setKeyboardSquare(humanColor === 'w' ? 'e2' : 'e7'); }}>
         <div className="board-scene"><Chessboard options={{ id: decorative ? 'welcome-board' : 'squad-board', position: decorative ? initial.fen : shownFen, pieces,
           boardOrientation: decorative ? 'white' : orientation, allowDragging: !decorative && canMove, animationDurationInMs: 0, showNotation: preferences.showCoordinates !== false,
           allowDrawingArrows: false, arrows: [], squareStyles: decorative ? {} : squareStyles,
@@ -206,7 +219,7 @@ function App() {
     </div>;
   }
   function playerCard(seat) {
-    const player = getPlayer(seat, humanColor); const active = screen === 'game' && actingSeat === seat && !livePosition.result;
+    const player = getPlayer(seat, humanColor); const active = screen === 'game' && actingSeat === seat && !livePosition.result && !['paused', 'error'].includes(match?.phase);
     return <div key={seat} className={`player-card ${active ? 'active' : ''}`} style={{ '--player-accent': player.accent }}>
       <span className="avatar"><PieceArt type={player.type} color={seat[0]} size={46} accent={player.accent} /></span>
       <span><strong>{player.name}{player.name === 'You' && <small>CAPTAIN</small>}</strong><em>{player.role}</em></span>
@@ -216,7 +229,7 @@ function App() {
   function teamRow(color) {
     const friendly = color === humanColor;
     return <div className={`team-row ${friendly ? 'friendly' : 'enemy'}`}><div className="team-members">{playerCard(`${color}1`)}{playerCard(`${color}2`)}</div>
-      <div className={`team-clock ${activeMatch?.clocks.enabled && activeMatch.clocks[color] < 30000 ? 'clock-low' : ''}`}><small>{friendly ? 'YOUR SQUAD' : 'RIVAL SQUAD'}</small><strong>{activeMatch?.clocks.enabled ? formatClock(activeMatch.clocks[color]) : '∞'}</strong></div>
+      <div className={`team-clock ${displayedClocks?.enabled && displayedClocks[color] < 30000 ? 'clock-low' : ''}`}><small>{screen === 'replay' && activeMatch?.clocks.enabled ? 'RECORDED TIME' : friendly ? 'YOUR SQUAD' : 'RIVAL SQUAD'}</small><strong aria-label={`${friendly ? 'Your squad' : 'Rival squad'} ${screen === 'replay' ? 'recorded ' : ''}clock`}>{activeMatch?.clocks.enabled ? displayedClocks ? formatClock(displayedClocks[color]) : '—' : '∞'}</strong></div>
     </div>;
   }
   const result = match?.position.result;
@@ -240,7 +253,8 @@ function App() {
         preview={preview} previewStep={previewStep} setPreviewStep={setPreviewStep}
         humanColor={humanColor} actingSeat={actingSeat} canMove={canMove} hinting={hinting}
         controller={controller} onClearSelection={() => setSelected(null)} onScreen={setScreen}
-        onReturn={() => { const target = match || replay.match; setReplay(null); continueGame(target); }}
+        returnLabel={replay?.returnTo === 'history' ? 'Back to Match History' : 'Return to Match'}
+        onReturn={() => { const origin = replay.returnTo; const target = match?.id === replay.match.id ? match : replay.match; setReplay(null); if (origin === 'history') navigate('history'); else continueGame(target); }}
         onExportHistory={() => download(exportMoveList(activeMatch), 'squadchess-history.txt', 'text/plain')}
         onExport={() => download(exportMatch(activeMatch), `squadchess-${activeMatch.id.slice(0, 8)}.json`)}
       /></div></main>}
