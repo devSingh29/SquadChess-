@@ -1,0 +1,32 @@
+/* Plan access and keyboard controls shared by match and settings panels. */
+.phone-plan-summary { display: none; }
+.command-panel { scroll-margin-top: 12px; }
+[role="tablist"] [role="tab"]:focus-visible { outline: 2px solid #b1d57e; outline-offset: -4px; }
+
+@media (max-width: 600px) {
+  .screen-game:has(.command-panel.has-plan) .battlefield .board-shell {
+    width: min(100%, max(160px, calc(100dvh - var(--phone-plan-dock-height, 190px) - 242px)));
+    margin-inline: auto;
+    scroll-margin-top: 12px;
+  }
+  .screen-game:has(.command-panel.has-plan) .arena-screen {
+    padding-bottom: calc(var(--phone-plan-dock-height, 190px) + 90px);
+  }
+  .phone-plan-summary { display: grid; gap: 6px; text-align: left; }
+  .phone-plan-summary-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .phone-plan-summary-heading > strong { font-size: 10px; color: #c8d5b8; font-weight: 650; }
+  .phone-plan-summary-heading > button { min-height: 25px; padding: 3px 0 3px 8px; font-size: 10px; color: #d2dec4; background: transparent; }
+  .phone-plan-summary-heading > button > span { margin-left: 4px; }
+  .phone-plan-moves { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .phone-plan-moves > button, .phone-plan-pending { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 44px; border: 1px solid #ffffff1c; border-radius: 5px; padding: 6px 9px; text-align: left; background: #302f29; color: #ece9df; }
+  .phone-plan-moves > button[aria-pressed="true"] { border-color: #a6ca76; background: #3a422e; }
+  .phone-plan-number { display: grid; place-items: center; width: 23px; height: 23px; flex: 0 0 23px; border-radius: 50%; color: #e3d5ad; background: #5a5136; font-size: 11px; font-weight: 700; }
+  .phone-plan-moves > :last-child .phone-plan-number { background: #334d45; color: #b3e1d1; }
+  .phone-plan-moves small { display: block; font-size: 8px; line-height: 1.2; color: #b0b8a8; margin-bottom: 2px; }
+  .phone-plan-moves strong { display: block; font-size: 11px; line-height: 1.25; white-space: nowrap; }
+  .phone-plan-pending strong { color: #b1afa3; font-size: 10px; }
+  .phone-plan-end-reason { font-size: 10px; line-height: 1.4; margin: 0; color: #d8deb5; }
+  .match-actions.has-confirmation { gap: 6px; padding-top: 8px; }
+  .match-actions.has-confirmation .primary-button { min-height: 43px; padding-block: 9px; }
+  .match-actions.has-confirmation .change-plan { min-height: 27px; padding-block: 3px; }
+}

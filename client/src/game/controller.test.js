@@ -309,6 +309,91 @@ test('undo returns to the human decision before their pair and the opponent resp
   assert.equal(controller.getSnapshot().presentation, null);
 });
 
+test('undoing a paused ready plan keeps its restored clock frozen until explicit resume', async (t) => {
+  const clock = controlledClock(t);
+  const { controller, calls } = harness(t);
+  controller.start({ timeControl: '5+3' });
+  const firstPlan = controller.propose(e4);
+  calls[0].resolve({ move: nf3 });
+  await firstPlan;
+  clock.value = 2000;
+  controller.confirm(); controller.confirm();
+  assert.equal(controller.getSnapshot().match.events.length, 1, 'Repeated confirmation accepts the first move once');
+  const checkpoint = controller.getSnapshot().match.events[0].clocksBefore;
+  controller.skipAnimation(); controller.skipAnimation();
+  calls[1].resolve({ move: { from: 'e7', to: 'e5' }, continuation: { from: 'b8', to: 'c6' } });
+  await settle();
+  controller.skipAnimation(); controller.skipAnimation();
+  const nextPlan = controller.propose(d4);
+  calls[2].resolve({ move: { from: 'b1', to: 'c3' } });
+  await nextPlan;
+  const preview = structuredClone(controller.getSnapshot().match.preview);
+  clock.value = 4000;
+  controller.pause();
+  controller.confirm(); controller.confirm();
+  assert.deepEqual(controller.getSnapshot().match.preview, preview, 'Pausing alone preserves the unplayed plan');
+  assert.equal(controller.getSnapshot().match.events.length, 4);
+  controller.undo();
+  const undone = controller.getSnapshot().match;
+  assert.equal(undone.phase, 'paused');
+  assert.deepEqual(undone.position, undone.initialPosition);
+  assert.deepEqual(undone.clocks, checkpoint);
+  assert.equal(undone.preview, null, 'The proposed plan belongs to the position that was undone');
+  assert.equal(undone.lockedMove, null);
+  controller.undo();
+  assert.equal(controller.getSnapshot().match, undone, 'Another Undo with no earlier human turn changes nothing');
+  clock.value = 20000;
+  controller.chargeClock();
+  assert.deepEqual(controller.getSnapshot().match.clocks, checkpoint);
+  assert.equal(calls.length, 3, 'Undo and paused confirmation must not start computer work');
+  controller.resume(); controller.resume();
+  assert.equal(controller.getSnapshot().match.phase, 'planning');
+  clock.value = 21000;
+  controller.chargeClock();
+  assert.equal(controller.getSnapshot().match.clocks.w, checkpoint.w - 1000);
+  assert.equal(controller.getSnapshot().match.events.length, 0);
+  assert.equal(calls.length, 3);
+});
+
+test('undoing a paused partial pair discards its promise and ignores an old animation completion', async (t) => {
+  const { controller, calls } = harness(t);
+  controller.start();
+  const pending = controller.propose(e4);
+  calls[0].resolve({ move: nf3 });
+  await pending;
+  controller.confirm();
+  const animationId = controller.getSnapshot().presentation.id;
+  controller.pause();
+  assert.deepEqual(controller.getSnapshot().match.lockedMove, nf3);
+  controller.undo();
+  controller.finishPresentation(animationId);
+  assert.equal(controller.getSnapshot().match.phase, 'paused');
+  assert.equal(controller.getSnapshot().match.events.length, 0);
+  assert.equal(controller.getSnapshot().match.lockedMove, null);
+  assert.equal(controller.getSnapshot().presentation, null);
+  controller.resume(); controller.resume();
+  assert.equal(controller.getSnapshot().match.events.length, 0);
+  assert.equal(controller.getSnapshot().match.phase, 'planning');
+  assert.equal(calls.length, 1);
+});
+
+test('undo after a computer error clears the error and waits paused for the player', async (t) => {
+  const { controller, calls } = harness(t);
+  controller.start();
+  const pending = controller.propose(e4);
+  calls[0].resolve({ move: nf3 });
+  await pending;
+  controller.confirm(); controller.skipAnimation(); controller.skipAnimation();
+  calls[1].reject(new Error('Computer unavailable'));
+  await settle();
+  assert.equal(controller.getSnapshot().match.phase, 'error');
+  controller.undo();
+  assert.equal(controller.getSnapshot().match.phase, 'paused');
+  assert.equal(controller.getSnapshot().match.error, null);
+  assert.equal(controller.getSnapshot().match.events.length, 0);
+  assert.equal(calls.length, 2);
+});
+
 test('team clocks charge planning and thinking, exclude animations and pauses, and increment once per pair', async (t) => {
   const clock = controlledClock(t);
   const { controller, calls } = harness(t);

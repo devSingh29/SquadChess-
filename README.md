@@ -48,7 +48,7 @@ You play White by default, with a Medium teammate and Easy opponents. Choosing B
 
 ## Plan with your teammate
 
-Select your first move to preview the resulting board and the teammate's intended follow-up. Change or cancel your choice until the combination is ready, then use **Play Team Turn**. The displayed follow-up is the one your teammate will play. A checking first move shows that the turn ends without a follow-up.
+Select your first move to preview the resulting board and the teammate's intended follow-up. Change or cancel your choice until the combination is ready, then use **Play Team Turn**. The displayed follow-up is the one your teammate will play. A checking first move shows that the turn ends without a follow-up. On phones, both numbered moves remain beside confirmation; tap either move to inspect its board position, or use **Review full plan** for Lyra’s reasoning. Plan, Moves, and Settings categories support arrow-key navigation. The board announces focused pieces and legal destinations to screen readers.
 
 The teammate and opposing team have separate difficulty settings. Their computer search understands consecutive allied moves and the check-ending rule; it does not use an ordinary alternating-turn Stockfish evaluation. Hints propose a friendly combination, and explanations describe verified board facts. Difficulty names are relative settings, not claimed human skill ratings.
 
@@ -64,7 +64,7 @@ Twelve rare environmental finishers add longer, dramatic captures lasting two to
 
 Open **Explore capture battles** from the home screen, or **Explore the capture battles** in Settings, to visit the battle gallery. Try all six attackers, all twenty-four encounters, five target types, four player accents, and the two-capture team celebration without changing a real game.
 
-Matches save automatically in this browser. Continue restores an unfinished position and any already-confirmed teammate move. History preserves completed games and lets you replay their original battle choices. Export a SquadChess save file for backup or transfer; import checks the entire move history before accepting it and creates a new local copy. A readable move-list export labels all four players. These are custom SquadChess records, not ordinary alternating-turn chess records.
+Matches save automatically in this browser. Continue restores an unfinished position and any already-confirmed teammate move. Home labels completed games **Review finished match**. History preserves completed games and lets you replay their original battle choices; returning from an archived replay takes you back to History without replacing your current match. Replay clocks show recorded move times. Undo while paused keeps the game paused until you resume. Export a SquadChess save file for backup or transfer; import checks the entire move history before accepting it and creates a new local copy. A readable move-list export labels all four players. These are custom SquadChess records, not ordinary alternating-turn chess records.
 
 Browser storage belongs to the browser and local address you use. Export any match you want to keep independently of that storage. If storage is unavailable or full, the game reports it and allows in-memory play and file export.
 

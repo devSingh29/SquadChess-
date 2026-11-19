@@ -88,6 +88,11 @@ async function replayGame(page, match) {
   await page.getByRole('button', { name: 'Watch the replay', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Match replay', exact: true })).toBeVisible();
 }
+async function rewind(page) {
+  const first = page.getByRole('button', { name: 'First move', exact: true });
+  if (await first.isEnabled()) await first.click();
+  await expect(page.getByRole('slider', { name: 'Replay move', exact: true })).toHaveValue('0');
+}
 async function noEffects(page) {
   await expect(page.getByTestId('finisher-effects')).toHaveCount(0);
   await expect(page.getByTestId('battle-overlay')).toHaveCount(0);
@@ -187,7 +192,7 @@ for (const humanColor of ['w', 'b']) {
     for (const viewport of [{ width: 360, height: 800 }, { width: 800, height: 360 }]) {
       await page.setViewportSize(viewport);
       for (const requestedFlip of [false, true]) {
-        await page.getByRole('button', { name: 'First move', exact: true }).click();
+        await rewind(page);
         if (flipped !== requestedFlip) { await page.getByRole('button', { name: 'Flip board', exact: true }).click(); flipped = requestedFlip; }
         await page.getByRole('button', { name: 'Next move', exact: true }).click();
         const battle = page.getByTestId('battle-overlay');
@@ -222,7 +227,7 @@ test('finishers, board shake, reduced motion, and motion off honor settings with
   const saved = await savedMatch(page);
   const event = saved.events[1];
   const showFinish = async () => {
-    await page.getByRole('button', { name: 'First move', exact: true }).click();
+    await rewind(page);
     await page.getByRole('button', { name: 'Next move', exact: true }).click();
     await page.getByRole('button', { name: 'Next move', exact: true }).click();
   };
@@ -308,7 +313,7 @@ test('imported finishes replay identical choices and stop cleanly when paused or
   await page.getByRole('button', { name: 'Next move', exact: true }).click();
   await expect(battle).toHaveAttribute('data-finisher', game.events[1].finisher.id);
   expect(await page.getByTestId('finisher-effects').locator('[data-debris]').evaluateAll(elements => elements.map(element => [element.getAttribute('d'), element.getAttribute('style')]))).toEqual(artwork);
-  await page.getByRole('button', { name: 'First move', exact: true }).click();
+  await rewind(page);
   await page.getByRole('button', { name: 'Play replay', exact: true }).click();
   await expect(battle).toBeVisible();
   await page.getByRole('button', { name: 'Pause replay', exact: true }).click();
