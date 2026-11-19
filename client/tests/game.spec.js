@@ -81,7 +81,7 @@ async function installFixture(page, match) {
     await saveMatch(game);
   }, match);
   await page.reload();
-  await page.getByRole('button', { name: 'Continue match', exact: true }).click();
+  await page.getByRole('button', { name: match.position.result ? 'Review finished match' : 'Continue match', exact: true }).click();
 }
 
 test('home explains the unique rules and starts a usable local match', async ({ page }, info) => {

@@ -3,7 +3,7 @@ import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { GameController, DEFAULT_CONFIG, DEFAULT_PREFERENCES } from './game/controller';
 import { createPosition, legalMoves, isInCheck } from './game/rules';
-import { getSavedMatch, listMatches, loadMatch, importMatch, exportMatch, exportMoveList, deleteMatch, loadPreferences, savePreferences } from './game/storage';
+import { getSavedMatch, listMatches, loadMatch, importMatch, exportMatch, exportMoveList, loadPreferences, savePreferences } from './game/storage';
 import { PieceArt } from './components/PieceArt';
 import { BattleOverlay } from './components/BattleOverlay';
 import { BattleGallery } from './components/BattleGallery';
@@ -43,6 +43,9 @@ function App() {
   const [preferences, setPreferences] = useState(initialPreferences.preferences);
   const [saved, setSaved] = useState(null);
   const [history, setHistory] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
+  const historyRequest = useRef(0);
+  const openRequest = useRef(0);
   const [selected, setSelected] = useState(null);
   const [keyboardSquare, setKeyboardSquare] = useState(null);
   const [promotion, setPromotion] = useState(null);
@@ -57,7 +60,8 @@ function App() {
 
   useEffect(() => {
     let live = true;
-    Promise.all([getSavedMatch(), listMatches()]).then(([game, matches]) => { if (live) { setSaved(game); setHistory(matches); } }).catch(error => { if (live) setMessage(error.message); });
+    const request = ++historyRequest.current;
+    Promise.all([getSavedMatch(), listMatches()]).then(([game, matches]) => { if (live && request === historyRequest.current) { setSaved(game); setHistory(matches); } }).catch(error => { if (live && request === historyRequest.current) setMessage(error.message); });
     const timer = setInterval(() => controller.chargeClock(), 200);
     const hidden = () => { if (document.hidden) { controller.pause(); setReplay(current => current ? { ...current, playing: false, event: null } : current); } };
     const leaving = () => { controller.pause(); controller.persist(); };
@@ -90,10 +94,30 @@ function App() {
     return () => clearTimeout(timer);
   }, [replay, screen, modal]);
 
-  async function refreshHistory() { try { const games = await listMatches(); setHistory(games); setSaved(await getSavedMatch()); } catch (error) { setMessage(error.message); } }
-  function navigate(next) { window.scrollTo(0, 0); if (next !== 'game') controller.pause(); if (next !== 'replay') setReplay(current => current ? { ...current, playing: false, event: null } : current); setScreen(next); setSelected(null); if (next === 'history') refreshHistory(); }
-  function startGame() { setMatchTab('plan'); window.scrollTo(0, 0); unlockAudio(); setSelected(null); setPromotion(null); setFlipped(false); setPreviewStep(1); controller.start(config); setScreen('game'); }
-  function continueGame(game = match || saved) { setMatchTab('plan'); window.scrollTo(0, 0); if (!game) return; if (game !== match) controller.load(game); setScreen('game'); setSelected(null); setFlipped(false); }
+  async function refreshHistory() {
+    const request = ++historyRequest.current;
+    try {
+      const [games, current] = await Promise.all([listMatches(), getSavedMatch()]);
+      if (request === historyRequest.current) { setHistory(games); setSaved(current); }
+    } catch (error) { if (request === historyRequest.current) setMessage(error.message); }
+  }
+  async function removeSavedGame(game) {
+    if (deletingId || !window.confirm('Delete this saved battle? This cannot be undone.')) return;
+    openRequest.current += 1;
+    setDeletingId(game.id);
+    historyRequest.current += 1;
+    try {
+      await controller.deleteSavedMatch(game.id);
+      setSaved(current => current?.id === game.id ? null : current);
+      setReplay(current => current?.match.id === game.id ? null : current);
+      await refreshHistory();
+      setMessage('Saved match deleted.');
+    } catch (error) { setMessage(`Could not delete this match. ${error.message}`); }
+    finally { setDeletingId(null); }
+  }
+  function navigate(next) { openRequest.current += 1; window.scrollTo(0, 0); if (next !== 'game') controller.pause(); if (next !== 'replay') setReplay(current => current ? { ...current, playing: false, event: null } : current); setScreen(next); setSelected(null); if (next === 'history') refreshHistory(); }
+  function startGame() { openRequest.current += 1; setMatchTab('plan'); window.scrollTo(0, 0); unlockAudio(); setSelected(null); setPromotion(null); setFlipped(false); setPreviewStep(1); controller.start(config); setScreen('game'); }
+  function continueGame(game = match || saved) { openRequest.current += 1; setMatchTab('plan'); window.scrollTo(0, 0); if (!game) return; if (game !== match) controller.load(game); setScreen('game'); setSelected(null); setFlipped(false); }
   function changeConfig(next) { setConfig(next); changePreferences({ matchDefaults: next }); }
   function changePreferences(patch) { const next = { ...preferences, ...patch }; setPreferences(next); try { savePreferences(next); } catch (error) { setMessage(error.message); } }
   function finishReplayEvent(id) { setReplay(current => current?.event?.id === id ? { ...current, event: null } : current); }
@@ -103,10 +127,11 @@ function App() {
     try { const game = await importMatch(await file.text()); controller.load(game); setSaved(game); setScreen('game'); setMessage('Game imported. Resume whenever you’re ready.'); } catch (error) { setMessage(error.message); }
   }
   async function openSaved(id, replayOnly = false) {
-    try { const game = await loadMatch(id); if (!game) throw new Error('This saved game is no longer available.');
+    const request = ++openRequest.current;
+    try { const game = await loadMatch(id); if (request !== openRequest.current) return; if (!game) throw new Error('This saved game is no longer available.');
       if (replayOnly || game.position.result) { controller.pause(); setReplay({ match: game, index: 0, playing: false, event: null }); setScreen('replay'); }
       else continueGame(game);
-    } catch (error) { setMessage(error.message); }
+    } catch (error) { if (request === openRequest.current) setMessage(error.message); }
   }
   const activeMatch = screen === 'replay' ? replay?.match : match;
   const humanColor = activeMatch?.config.humanColor || config.humanColor;
@@ -195,6 +220,7 @@ function App() {
     </div>;
   }
   const result = match?.position.result;
+  const homeMatch = [match, saved].find(game => game && game.id !== deletingId) || null;
 
   return <div className={`app-shell screen-${screen}`}>
     <aside className="navigation-rail"><button className="brand-mark" onClick={() => navigate('home')} aria-label="SquadChess home"><Icon name="shield" size={28} /><span>Squad<span>Chess</span></span></button><div className="rail-links">
@@ -204,7 +230,7 @@ function App() {
     </div><button className="rail-settings" onClick={() => openModal('settings')}><Icon name="settings" /><span>Settings</span></button></aside>
     <div className="app-main"><header className="topbar"><button className="wordmark" onClick={() => navigate('home')}>SQUAD<span>CHESS</span><small>STRATEGY IS BETTER TOGETHER</small></button><div className="topbar-right"><span className="local-badge"><span /> LOCAL PLAY</span><button className="icon-button" title="Sound settings" aria-label={preferences.sound ? 'Mute sound' : 'Enable sound'} onClick={() => { unlockAudio(); changePreferences({ sound: !preferences.sound }); }}><Icon name="sound" /><span className={preferences.sound ? 'sr-only' : 'mute-slash'} /></button></div></header>
     {(notice || message) && <div role="status" className="notice">{message || notice}<button className="icon-button" aria-label="Dismiss notice" onClick={() => { setMessage(''); controller.clearNotice(); }}><Icon name="close" size={16} /></button></div>}
-    {screen === 'home' && <HomeScreen config={config} onConfig={changeConfig} onStart={startGame} onContinue={() => continueGame()} hasSaved={!!(match || saved)} onGallery={() => setModal('gallery')} renderBoard={renderBoard} />}
+    {screen === 'home' && <HomeScreen config={config} onConfig={changeConfig} onStart={startGame} onContinue={() => continueGame(homeMatch)} savedMatch={homeMatch} onGallery={() => setModal('gallery')} renderBoard={renderBoard} />}
     {(screen === 'game' && match || screen === 'replay' && replay) && <main className="arena-screen"><div className="arena-heading"><div><div className="eyebrow">{screen === 'replay' ? 'REPLAY' : 'LOCAL PLAY'} <span className="divider-dot">·</span> {activeMatch.config.timeControl === 'untimed' ? 'UNHURRIED' : activeMatch.config.timeControl}</div><h1>{screen === 'replay' ? 'Match replay' : 'Squad match'}</h1></div><button className="secondary-button compact" onClick={() => navigate('home')}>New match <Icon name="arrow" size={16} /></button></div>
       <div className="arena-grid"><section className="battlefield">{teamRow(humanColor === 'w' ? 'b' : 'w')}{renderBoard()}{teamRow(humanColor)}
         <div className="board-toolbar"><div className="toolbar-actions"><button title="Flip board" aria-label="Flip board" onClick={() => setFlipped(!flipped)}><Icon name="flip" /></button>{screen === 'game' && <><button title={match.phase === 'paused' ? 'Resume game' : 'Pause game'} aria-label={match.phase === 'paused' ? 'Resume game' : 'Pause game'} onClick={() => match.phase === 'paused' ? controller.resume() : controller.pause()} disabled={!!result}><Icon name={match.phase === 'paused' ? 'play' : 'pause'} /></button><button title="Undo your last team turn" aria-label="Undo your last team turn" onClick={controller.undo} disabled={!!result || !match.events.some(e => e.color === humanColor && e.seat.endsWith('1'))}><Icon name="undo" /></button><button title="Resign" aria-label="Resign" onClick={() => openModal('resign')} disabled={!!result}><Icon name="flag" /></button></>}</div><span>{screen === 'replay' ? `Move ${replay.index} of ${replay.match.events.length}` : `${match.events.length} ${match.events.length === 1 ? 'move' : 'moves'} · turn ${livePosition.turnNumber}`}</span><button className="text-button" onClick={() => openModal('help')}>Rules <Icon name="guide" size={15} /></button></div>
@@ -218,7 +244,7 @@ function App() {
         onExportHistory={() => download(exportMoveList(activeMatch), 'squadchess-history.txt', 'text/plain')}
         onExport={() => download(exportMatch(activeMatch), `squadchess-${activeMatch.id.slice(0, 8)}.json`)}
       /></div></main>}
-    {screen === 'history' && <main className="history-screen"><div className="arena-heading"><div><div className="eyebrow">YOUR GAMES</div><h1>Match History</h1></div><button className="secondary-button" onClick={() => importRef.current.click()}><Icon name="upload" size={17} /> Import game</button></div><p className="page-description">Your matches stay on this device. Resume an unfinished battle or revisit a memorable combination.</p><div className="history-grid">{history.length ? history.map(game => <article className="history-card" key={game.id}><div className="history-card-top"><span className="history-emblem"><Icon name="shield" size={26} /></span><span className="game-tag">{game.position?.result ? 'COMPLETE' : 'IN PROGRESS'}</span></div><h2>{game.position?.result ? game.position.result.winner === null ? 'An even battlefield' : game.position.result.winner === game.config.humanColor ? 'A shared victory' : 'Lessons from the arena' : 'Your squad awaits'}</h2><p>{new Date(game.updatedAt || game.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {game.events?.length || 0} moves</p><div className="history-meta">{(game.assisted?.hints || game.assisted?.undos) ? <span>Assisted</span> : null}<span>{game.config?.opponentDifficulty} rivals</span><span>{game.config?.timeControl === 'untimed' ? 'Unhurried' : game.config?.timeControl}</span></div><div className="history-actions"><button className="primary-button" onClick={() => openSaved(game.id)}>{game.position?.result ? 'Watch replay' : 'Resume battle'}<Icon name="arrow" size={17} /></button><button className="icon-button" title="Delete saved game" aria-label="Delete saved game" onClick={async () => { if (window.confirm('Delete this saved battle? This cannot be undone.')) { try { await deleteMatch(game.id); await refreshHistory(); } catch (error) { setMessage(error.message); } } }}><Icon name="close" size={16} /></button></div></article>) : <div className="empty-history"><Icon name="history" size={44} /><h2>A story waiting to be written.</h2><p>Your saved battles will appear here.</p><button className="primary-button" onClick={() => navigate('home')}>Start your first match <Icon name="arrow" /></button></div>}</div></main>}
+    {screen === 'history' && <main className="history-screen"><div className="arena-heading"><div><div className="eyebrow">YOUR GAMES</div><h1>Match History</h1></div><button className="secondary-button" onClick={() => importRef.current.click()}><Icon name="upload" size={17} /> Import game</button></div><p className="page-description">Your matches stay on this device. Resume an unfinished battle or revisit a memorable combination.</p><div className="history-grid">{history.length ? history.map(game => <article className="history-card" key={game.id}><div className="history-card-top"><span className="history-emblem"><Icon name="shield" size={26} /></span><span className="game-tag">{game.position?.result ? 'COMPLETE' : 'IN PROGRESS'}</span></div><h2>{game.position?.result ? game.position.result.winner === null ? 'An even battlefield' : game.position.result.winner === game.config.humanColor ? 'A shared victory' : 'Lessons from the arena' : 'Your squad awaits'}</h2><p>{new Date(game.updatedAt || game.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {game.events?.length || 0} moves</p><div className="history-meta">{(game.assisted?.hints || game.assisted?.undos) ? <span>Assisted</span> : null}<span>{game.config?.opponentDifficulty} rivals</span><span>{game.config?.timeControl === 'untimed' ? 'Unhurried' : game.config?.timeControl}</span></div><div className="history-actions"><button className="primary-button" disabled={deletingId === game.id} onClick={() => openSaved(game.id)}>{game.position?.result ? 'Watch replay' : 'Resume battle'}<Icon name="arrow" size={17} /></button><button className="icon-button" title="Delete saved game" aria-label="Delete saved game" disabled={!!deletingId} onClick={() => removeSavedGame(game)}><Icon name="close" size={16} /></button></div></article>) : <div className="empty-history"><Icon name="history" size={44} /><h2>A story waiting to be written.</h2><p>Your saved battles will appear here.</p><button className="primary-button" onClick={() => navigate('home')}>Start your first match <Icon name="arrow" /></button></div>}</div></main>}
     <footer className="app-footer"><span>SQUADCHESS <i>✧</i> A different kind of strategy.</span><button onClick={() => openModal('help')}>Learn the two-move rules <Icon name="arrow" size={14} /></button></footer>
     </div>
     <input ref={importRef} className="sr-only" type="file" accept=".json,application/json" aria-label="Import SquadChess game" onChange={importFile} />

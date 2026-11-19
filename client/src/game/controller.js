@@ -1,6 +1,6 @@
 import { createPosition, applyMove, RULESET } from './rules.js';
 import { battleDetails, movementDetails, presentationDuration, specialMoveDetails, hashSeed } from './battles.js';
-import { saveMatch } from './storage.js';
+import { saveMatch, deleteMatch } from './storage.js';
 import { DEFAULT_MATCH_CONFIG } from './types.js';
 
 export const DEFAULT_CONFIG = DEFAULT_MATCH_CONFIG;
@@ -44,8 +44,9 @@ export function browserSearch(request, signal) {
 }
 
 export class GameController {
-  constructor({ search = browserSearch, save = saveMatch, tick = true } = {}) {
-    this.search = search; this.save = save; this.listeners = new Set();
+  constructor({ search = browserSearch, save = saveMatch, remove = deleteMatch, tick = true } = {}) {
+    this.search = search; this.save = save; this.remove = remove; this.listeners = new Set();
+    this.pendingDeletions = new Map();
     this.state = { match: null, presentation: null, notice: '', hinting: false };
     this.preferences = DEFAULT_PREFERENCES; this.epoch = 0; this.lastTick = now(); this.saveChain = Promise.resolve();
     this.lastSaved = now();
@@ -67,6 +68,40 @@ export class GameController {
       this.publish({ notice: error?.message || 'Saving is unavailable. Export your game to keep a copy.' });
     });
   }
+  deleteSavedMatch = async id => {
+    if (this.pendingDeletions.has(id)) return this.pendingDeletions.get(id);
+    let pausedSnapshot = null;
+    if (this.state.match?.id === id) {
+      this.chargeClock();
+      this.pause();
+      pausedSnapshot = { ...this.state.match, phase: this.state.match.position.result ? 'finished' : 'paused' };
+      this.cancel();
+      // Clear first: pagehide, clock ticks, and old animation completions must
+      // not enqueue another save while deletion waits for earlier writes.
+      this.publish({ match: null, presentation: null });
+    }
+    const deletionEpoch = this.epoch;
+    const queuedSaves = this.saveChain;
+    const operation = (async () => {
+      try {
+        await queuedSaves;
+        await this.remove(id);
+      } catch (error) {
+        // A newer start/load/delete invalidates restoration even if the newer
+        // game has since been cleared, so checking for null alone is unsafe.
+        if (pausedSnapshot && this.epoch === deletionEpoch && !this.state.match) {
+          this.lastTick = now();
+          this.publish({ match: pausedSnapshot, presentation: null });
+        }
+        throw error;
+      }
+    })();
+    this.pendingDeletions.set(id, operation);
+    try { await operation; }
+    finally {
+      if (this.pendingDeletions.get(id) === operation) this.pendingDeletions.delete(id);
+    }
+  };
   clearNotice = () => this.publish({ notice: '' });
   setPreferences = preferences => {
     this.preferences = { ...DEFAULT_PREFERENCES, ...preferences };
@@ -94,6 +129,7 @@ export class GameController {
     this.persist(); this.advance();
   };
   load = match => {
+    if (this.pendingDeletions.has(match.id)) throw new Error('This saved match is being deleted. Wait for deletion to finish.');
     this.cancel(); this.lastTick = now();
     const phase = match.position.result ? 'finished' : 'paused';
     this.publish({ match: { ...match, phase, error: null }, presentation: null, notice: '' });

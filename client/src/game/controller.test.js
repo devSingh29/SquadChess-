@@ -33,6 +33,7 @@ function harness(t, options = {}) {
       return pending.promise;
     }),
     save: options.save || (async (match) => { saves.push(structuredClone(match)); }),
+    remove: options.remove || (async () => {}),
   });
   t.after(() => controller.destroy());
   return { controller, calls, saves };
@@ -460,4 +461,167 @@ test('save failures show a recovery notice without discarding the live game', as
   assert.match(controller.getSnapshot().notice, /Storage is full/);
   assert.equal(controller.getSnapshot().match.phase, 'planning');
   assert.equal(controller.getSnapshot().match.events.length, 0);
+});
+
+test('deleting the active match drains older saves and cannot be undone by pagehide persistence', async (t) => {
+  const gate = deferred();
+  const stored = new Map();
+  const operations = [];
+  const { controller } = harness(t, {
+    save: async match => { await gate.promise; stored.set(match.id, structuredClone(match)); operations.push(`save:${match.id}`); },
+    remove: async id => { operations.push(`remove:${id}`); stored.delete(id); },
+  });
+  controller.start();
+  const id = controller.getSnapshot().match.id;
+  const deletion = controller.deleteSavedMatch(id);
+  const duplicate = controller.deleteSavedMatch(id);
+  assert.equal(controller.getSnapshot().match, null, 'Clear the loaded game before waiting for storage');
+  controller.pause(); controller.persist(); // The real pagehide handler.
+  await settle();
+  assert.equal(operations.length, 0, 'Removal must wait for the older writes');
+  gate.resolve();
+  await Promise.all([deletion, duplicate]);
+  assert.ok(operations.some(operation => operation === `save:${id}`));
+  assert.equal(operations.at(-1), `remove:${id}`);
+  assert.equal(operations.filter(operation => operation === `remove:${id}`).length, 1);
+  controller.pause(); controller.persist(); controller.resume();
+  await controller.saveChain;
+  assert.equal(stored.has(id), false);
+  assert.equal(controller.getSnapshot().match, null);
+});
+
+test('a loaded match being deleted cannot be reopened by a late saved-load result', async (t) => {
+  const removal = deferred();
+  const stored = new Map();
+  const { controller, saves } = harness(t, {
+    save: async match => { saves.push(structuredClone(match)); stored.set(match.id, structuredClone(match)); },
+    remove: async id => { await removal.promise; stored.delete(id); },
+  });
+  controller.start();
+  await controller.saveChain;
+  const staleLoad = structuredClone(controller.getSnapshot().match);
+  const deletion = controller.deleteSavedMatch(staleLoad.id);
+  await controller.saveChain;
+  const saveCount = saves.length;
+  assert.throws(() => controller.load(staleLoad), /being deleted/);
+  assert.equal(controller.getSnapshot().match, null);
+  assert.equal(saves.length, saveCount, 'The rejected load must not enqueue a save');
+  removal.resolve();
+  await deletion;
+  controller.pause(); controller.persist();
+  await controller.saveChain;
+  assert.equal(controller.getSnapshot().match, null);
+  assert.equal(stored.has(staleLoad.id), false);
+  assert.equal(saves.length, saveCount);
+});
+
+test('failed deletion restores the paused preview, charged clock, and locked teammate promise', async (t) => {
+  const clock = controlledClock(t);
+  const removals = [];
+  const { controller, calls } = harness(t, { remove: () => { const pending = deferred(); removals.push(pending); return pending.promise; } });
+  controller.start({ timeControl: '5+3' });
+  const proposal = controller.propose(e4);
+  calls[0].resolve({ move: nf3 });
+  await proposal;
+  const preview = structuredClone(controller.getSnapshot().match.preview);
+  clock.value = 2000;
+  const rejected = assert.rejects(controller.deleteSavedMatch(controller.getSnapshot().match.id), /Could not remove/);
+  await controller.saveChain;
+  await settle();
+  clock.value = 8000;
+  controller.chargeClock();
+  removals[0].reject(new Error('Could not remove'));
+  await rejected;
+  const restored = controller.getSnapshot().match;
+  assert.equal(restored.phase, 'paused');
+  assert.equal(restored.clocks.w, 299000);
+  assert.deepEqual(restored.preview, preview);
+  assert.equal(restored.events.length, 0);
+  controller.resume();
+  controller.confirm();
+  const accepted = structuredClone(controller.getSnapshot().match);
+  assert.deepEqual(accepted.lockedMove, nf3);
+  const animationId = controller.getSnapshot().presentation.id;
+  const failedAgain = assert.rejects(controller.deleteSavedMatch(accepted.id), /Still unavailable/);
+  assert.equal(controller.getSnapshot().presentation, null);
+  controller.finishPresentation(animationId);
+  await controller.saveChain;
+  await settle();
+  removals[1].reject(new Error('Still unavailable'));
+  await failedAgain;
+  const pendingPair = controller.getSnapshot().match;
+  assert.equal(pendingPair.phase, 'paused');
+  assert.deepEqual(pendingPair.lockedMove, nf3);
+  assert.deepEqual(pendingPair.clocks, accepted.clocks);
+  assert.deepEqual(pendingPair.events, accepted.events);
+  controller.resume();
+  assert.equal(controller.getSnapshot().match.events.length, 2);
+  assert.deepEqual(controller.getSnapshot().match.events[1].from, nf3.from);
+  assert.deepEqual(controller.getSnapshot().match.events[1].to, nf3.to);
+  assert.equal(calls.length, 1, 'The restored promise is executed without searching again');
+});
+
+test('deletion completion and failure cannot replace a newer match', async (t) => {
+  for (const failure of [false, true]) {
+    const removal = deferred();
+    const { controller } = harness(t, { remove: () => removal.promise });
+    controller.start();
+    const oldId = controller.getSnapshot().match.id;
+    const operation = controller.deleteSavedMatch(oldId);
+    const checked = failure ? assert.rejects(operation, /Removal failed/) : operation;
+    controller.start({ humanColor: 'w', timeControl: '10+5' });
+    const replacement = controller.getSnapshot().match;
+    assert.notEqual(replacement.id, oldId);
+    if (failure) removal.reject(new Error('Removal failed'));
+    else removal.resolve();
+    await checked;
+    assert.equal(controller.getSnapshot().match, replacement);
+    assert.equal(controller.getSnapshot().match.phase, 'planning');
+  }
+});
+
+test('a failed old deletion stays discarded after a newer match was also deleted', async (t) => {
+  const oldRemoval = deferred();
+  let oldId;
+  const { controller } = harness(t, { remove: id => id === oldId ? oldRemoval.promise : Promise.resolve() });
+  controller.start(); oldId = controller.getSnapshot().match.id;
+  const failure = assert.rejects(controller.deleteSavedMatch(oldId), /Old removal failed/);
+  controller.start();
+  await controller.deleteSavedMatch(controller.getSnapshot().match.id);
+  assert.equal(controller.getSnapshot().match, null);
+  oldRemoval.reject(new Error('Old removal failed'));
+  await failure;
+  assert.equal(controller.getSnapshot().match, null, 'A later player choice prevents resurrection of the earlier game');
+});
+
+test('deleting another saved match leaves the active plan and running clock untouched', async (t) => {
+  const clock = controlledClock(t);
+  const removed = [];
+  const { controller, calls } = harness(t, { remove: async id => removed.push(id) });
+  controller.start({ timeControl: '5+3' });
+  const pending = controller.propose(e4);
+  const before = controller.getSnapshot().match;
+  clock.value += 1500;
+  await controller.deleteSavedMatch('an-older-game');
+  assert.deepEqual(removed, ['an-older-game']);
+  assert.equal(controller.getSnapshot().match, before);
+  assert.equal(calls[0].signal.aborted, false);
+  controller.chargeClock();
+  assert.equal(controller.getSnapshot().match.clocks.w, 298500);
+  calls[0].resolve({ move: nf3 });
+  await pending;
+  assert.equal(controller.getSnapshot().match.preview.status, 'ready');
+});
+
+test('a computer reply arriving after deletion cannot restore or alter the deleted game', async (t) => {
+  const { controller, calls } = harness(t);
+  controller.start();
+  const pending = controller.propose(e4);
+  await controller.deleteSavedMatch(controller.getSnapshot().match.id);
+  assert.equal(calls[0].signal.aborted, true);
+  calls[0].resolve({ move: nf3 });
+  await pending;
+  assert.equal(controller.getSnapshot().match, null);
+  assert.equal(controller.getSnapshot().presentation, null);
+  assert.equal(controller.getSnapshot().hinting, false);
 });
